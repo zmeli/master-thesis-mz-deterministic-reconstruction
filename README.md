@@ -13,16 +13,7 @@ appendices.
 ## Folder layout
 
 ```
-upload/
-├── README.md                         ← this file (manifest + provenance)
-├── 01_thesis/                        ← the thesis document
-│   ├── NOTE_compiled_pdf.md            status of the compiled PDF (read me)
-│   └── latex_source/                   full, self-contained LaTeX source
-│       ├── main.tex, unili.cls, references.bib, frontpage.tex
-│       ├── sections/                   all chapters (0-abstract … 9-appendix)
-│       ├── images/                     figures used in the thesis
-│       └── Appendix/                   appendix text + each experiment's
-│                                       own scripts & data (see mapping below)
+
 ├── 02_code/                          ← source code
 │   ├── deterministic_engine/           the analytical core (the "engine")
 │   │   ├── core/                       tree_node, data_assimilation,
@@ -32,10 +23,7 @@ upload/
 │   │   ├── manual_testing/             synthetic test-log generators
 │   │   ├── main.py, interleaver.py
 │   ├── verification_and_metrics/       auto_verifier_v2.py + exposure / KPI /
-│   │                                   correlation / gather scripts
-│   └── attack_baseline_CFR/            Lahann/Pfeiffer Control-Flow
-│                                       Reconstruction reference implementation
-│                                       (the stochastic baseline compared against)
+|
 ├── 03_data/                          ← curated evaluation data (see "Data" below)
 │   ├── synthetic_stress_corpus/        29 hand-built test_*.csv structures
 │   ├── bpic2021_pdc_sample/            the sampled PDC2021 .xes logs
@@ -79,29 +67,6 @@ corpus has since grown to the counts below.)
 from the working `data/BPIC2021/` tree. Public source for the raw archives:
 BPI Challenge logs on 4TU.ResearchData. Even where a raw log is not bundled,
 its full per-noise results are present in `databasis_eval_master.csv`.
-
----
-
-## Where each thesis artifact comes from
-
-| Thesis reference | Artifact in this package |
-|---|---|
-| Worked example `test_01_seq_par.csv` (Ch. 4 / audit-examples appendix) | `03_data/synthetic_stress_corpus/test_01_seq_par.csv`; report in `04_.../sample_audit_reports/synthetic_stress_audits/audit_test_01_seq_par.md` |
-| LOOP+PAR worked example `test_27_par_loop_noxor.csv` (Ch. 5) | same data folder; audit in synthetic_stress_audits |
-| 64-permutation matrix (appendix `64_matrix`) | `04_.../output_summaries/foundational_verification_64_permutations.{csv,md}`; figures in `latex_source/images/appendix/64_matrix`; generator `gather_64matrix_appendix.py` (02_code) |
-| Synthetic nested structures table | `04_.../output_summaries/synthetic_nested_structures_summary.{csv,md}`; generator `gather_synthetic_nested_results.py` |
-| Exposure-vs-coverage toy figure (`pdc2021_0000101.xes`, Ch. 5 noise) | data in bpic2021_pdc_sample/training; reports `pdc2021_reports_quoted/audit_pdc2021_0000101*`; figure source `output/_make_exposure_vs_coverage_toy_figure.py` (in latex_source build inputs) |
-| Zero-noise audit excerpt `audit_pdc2021_110101__noise0.0.md` (Ch. 6) | `04_.../sample_audit_reports/pdc2021_reports_quoted/` |
-| Operator-vulnerability correlations (appendix `operator_vuln`) | data CSVs in `latex_source/Appendix/operator_vuln/`; `_operator_correlation.csv` + noise-sweep CSVs in output_summaries |
-| Noise-filtering paradox (appendix `noise_filtering`) | scripts + data in `latex_source/Appendix/noise_filtering/` |
-| k-anonymity sweep (appendix `k_anon`) | `_kanon_sweep_{full,summary}.csv` in `latex_source/Appendix/k_anon/` |
-| Break-the-RAM scaling (appendix `break_the_ram`) | scripts + progress/RSS CSVs in `latex_source/Appendix/break_the_ram/` |
-| Stochastic-vs-deterministic comparison (appendix `stoch_vs_det`) | scripts + per-strategy match reports in `latex_source/Appendix/stoch_vs_det/`; baseline code in `02_code/attack_baseline_CFR/` |
-| All Chapter 5 KPI definitions & values | `04_.../databasis_eval_master.csv` + `COLUMN_REFERENCE.txt` |
-
-> Each appendix experiment keeps its own scripts and data next to its `.tex`
-> under `latex_source/Appendix/<experiment>/`, so every appendix is
-> self-contained and reproducible in place.
 
 ---
 
