@@ -1,0 +1,24 @@
+// Process Tree
+digraph {
+	node [fontname=Arial shape=box style="rounded,filled"]
+	1415502574848 [label="∧ (PAR)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502574848 -> 1415502576576
+	1415502576576 [label="O_Create
+(n=5)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502574848 -> 1415502569088
+	1415502569088 [label="× (XOR)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502569088 -> 1415502568608
+	1415502568608 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502569088 -> 1415502576624
+	1415502576624 [label="∗ (LOOP)
+(n=8)" fillcolor="#FFF9C4" shape=box]
+	1415502576624 -> 1415502575040
+	1415502575040 [label="W_Call
+(n=8)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502576624 -> 1415502572256
+	1415502572256 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+}

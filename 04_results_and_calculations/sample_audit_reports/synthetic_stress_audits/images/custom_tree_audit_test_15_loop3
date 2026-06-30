@@ -1,0 +1,120 @@
+// Process Tree
+digraph {
+	node [fontname=Arial shape=box style="rounded,filled"]
+	1415502205712 [label="→ (SEQ)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502205712 -> 1415501877552
+	1415501877552 [label="A
+(n=5)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502205712 -> 1415502563040
+	1415502563040 [label="→ (SEQ)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502563040 -> 1415502283600
+	1415502283600 [label="∗ (LOOP)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502283600 -> 1415499966240
+	1415499966240 [label="∧ (PAR)
+(n=9)" fillcolor="#FFF9C4" shape=box]
+	1415499966240 -> 1415502361856
+	1415502361856 [label="× (XOR)
+(n=9)" fillcolor="#FFF9C4" shape=box]
+	1415502361856 -> 1415502357008
+	1415502357008 [label="τ
+(n=5)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502361856 -> 1415502360656
+	1415502360656 [label="G
+(n=4)" fillcolor="#E1F5FE" shape=ellipse]
+	1415499966240 -> 1415502244528
+	1415502244528 [label="→ (SEQ)
+(n=9)" fillcolor="#FFF9C4" shape=box]
+	1415502244528 -> 1415502240256
+	1415502240256 [label="∗ (LOOP)
+(n=9)" fillcolor="#FFF9C4" shape=box]
+	1415502240256 -> 1415502247600
+	1415502247600 [label="→ (SEQ)
+(n=11)" fillcolor="#FFF9C4" shape=box]
+	1415502247600 -> 1415502563328
+	1415502563328 [label="× (XOR)
+(n=11)" fillcolor="#FFF9C4" shape=box]
+	1415502563328 -> 1415502563472
+	1415502563472 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502563328 -> 1415502564720
+	1415502564720 [label="D
+(n=11)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502247600 -> 1415502565392
+	1415502565392 [label="× (XOR)
+(n=11)" fillcolor="#FFF9C4" shape=box]
+	1415502565392 -> 1415502562704
+	1415502562704 [label="→ (SEQ)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502562704 -> 1415502564096
+	1415502564096 [label="× (XOR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502564096 -> 1415502564960
+	1415502564960 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502564096 -> 1415502564336
+	1415502564336 [label="∧ (PAR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502564336 -> 1415502562992
+	1415502562992 [label="× (XOR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502562992 -> 1415502565056
+	1415502565056 [label="τ
+(n=5)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502562992 -> 1415502564144
+	1415502564144 [label="C
+(n=5)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502564336 -> 1415502563520
+	1415502563520 [label="× (XOR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502563520 -> 1415502563280
+	1415502563280 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502563520 -> 1415502564768
+	1415502564768 [label="∗ (LOOP)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502564768 -> 1415502563568
+	1415502563568 [label="B
+(n=10)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502564768 -> 1415502564672
+	1415502564672 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502562704 -> 1415502565248
+	1415502565248 [label="× (XOR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502565248 -> 1415502564384
+	1415502564384 [label="τ
+(n=4)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502565248 -> 1415502563712
+	1415502563712 [label="E
+(n=6)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502565392 -> 1415502565344
+	1415502565344 [label="τ
+(n=1)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502240256 -> 1415502561744
+	1415502561744 [label="τ
+(n=2)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502244528 -> 1415502562608
+	1415502562608 [label="× (XOR)
+(n=9)" fillcolor="#FFF9C4" shape=box]
+	1415502562608 -> 1415502562416
+	1415502562416 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502562608 -> 1415502562176
+	1415502562176 [label="∗ (LOOP)
+(n=9)" fillcolor="#FFF9C4" shape=box]
+	1415502562176 -> 1415502562944
+	1415502562944 [label="F
+(n=9)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502562176 -> 1415502561696
+	1415502561696 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502283600 -> 1415502562272
+	1415502562272 [label="τ
+(n=4)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502563040 -> 1415502562752
+	1415502562752 [label="H
+(n=5)" fillcolor="#E1F5FE" shape=ellipse]
+}

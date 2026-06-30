@@ -1,0 +1,279 @@
+databasis_eval_master.csv -- Column Reference
+================================================
+
+This file explains every column in databasis_eval_master.csv. The dataset
+covers 111 files (29 synthetic stress-test files, all 7 BPIC2017 logs, and
+25 randomly sampled files each from the BPIC2021 Ground Truth / Test /
+Training Logs, fixed RNG seed=42) audited at 6 noise thresholds each
+(0.0, 0.2, 0.4, 0.6, 0.8, 1.0), for 666 total rows. Every numeric KPI column
+below is also defined formally in Chapter 5 of the thesis; this file gives
+the same definitions in plain terms, grouped by what each column actually
+measures. The full audit report each row was extracted from is saved under
+reports/audit_<file>__noise<value>.md.
+
+
+1. IDENTIFICATION COLUMNS
+--------------------------
+
+corpus
+    Which of the five source corpora this row's file belongs to:
+    "stress" (synthetic stress-test suite), "bpic2017" (one of the 7 large
+    real BPIC2017 logs), "bpic2021_groundtruth", "bpic2021_test", or
+    "bpic2021_training" (25 randomly sampled files each from the
+    correspondingly named BPIC2021 folder).
+
+file
+    The source file's name (e.g. "test_27_par_loop_noxor.csv",
+    "sampled-log.xml", "pdc2021_0000123.xes").
+
+noise
+    The noise threshold (0.0-1.0) passed to PM4Py's Inductive Miner before
+    mining the process tree. Higher values mean more aggressive pruning of
+    infrequent behavior out of the mined model. This is the only input
+    parameter that varies across the 6 rows belonging to the same file --
+    everything else in the row is either a raw-log property (constant
+    across those 6 rows) or a consequence of mining at that specific
+    threshold.
+
+
+2. RAW-LOG DESCRIPTIVE STATISTICS (noise-independent)
+-------------------------------------------------------
+These two columns describe the *real, unmined log itself* and are identical
+across all 6 noise rows for a given file, since they don't depend on
+mining or filtering at all -- they are computed directly from the raw
+event data.
+
+total_cases_raw
+    The total number of distinct cases (process instances / traces) in the
+    raw log -- i.e. how many times the process was executed in total.
+
+unique_trace_variants_raw
+    The number of distinct trace *variants* among those cases -- i.e. how
+    many genuinely different activity sequences occur, ignoring how many
+    times each one repeats. A log with 1000 cases but only 5 unique
+    variants is far more repetitive/predictable than one with 1000 cases
+    and 800 unique variants. (This is the same "# Cases" / "# Variants"
+    pair of descriptive statistics process-mining papers commonly report
+    when characterizing a dataset's structuredness.)
+
+
+3. PM4PY'S OWN MODEL-QUALITY SCORES
+--------------------------------------
+
+fitness
+    PM4Py's replay fitness score (0-1) for the mined model against the log.
+    Higher means the model accounts for more of the log's actually recorded
+    behavior.
+
+precision
+    PM4Py's precision score (0-1) for the mined model against the log.
+    Higher means the model permits less behavior beyond what was actually
+    observed (a tighter, less permissive model).
+
+
+4. STRUCTURAL / OPERATOR COUNTS (properties of the mined tree)
+-------------------------------------------------------------------
+
+total_cases_audit
+    The total case count as read back out of the mined model/audit pass.
+    Should always equal total_cases_raw; kept as a separate column purely
+    as an internal cross-check that nothing was lost or miscounted between
+    raw-log loading and the audit.
+
+unique_activities
+    The number of distinct activity labels appearing in the mined tree.
+
+xor_operators / loop_operators / seq_operators / par_operators
+    How many Exclusive Choice (XOR), Loop, Sequence (SEQ), and Parallel
+    (PAR) operator nodes the mined, binarized tree contains. These four
+    counts are what "operator share" (used throughout Chapter 5's
+    operator-driven-vulnerability analysis) is computed from: e.g.
+    SEQ share = seq_operators / (xor+loop+seq+par operators).
+
+binarization_additions
+    How many synthetic intermediate operator nodes the binarization step
+    had to insert to convert the Inductive Miner's native n-ary operators
+    (e.g. a single Choice node with 5 children) into the strict binary
+    structure the Deterministic Engine requires.
+
+tau_operators_added
+    How many silent (tau) leaves the Top-Down Reconciliation pass had to
+    inject to absorb a token deficit -- i.e. how many times the engine
+    detected that a branch's own frequency fell short of what its parent's
+    budget required, and inserted an explicit "nothing observable happened
+    here" placeholder rather than fabricating extra behavior.
+
+
+5. PATTERN CLASSIFICATION COUNTS
+------------------------------------
+
+total_found_patterns
+    The total number of distinct patterns (Strict Traces and Activity Sets
+    combined) the Deterministic Engine extracted and attempted to verify
+    against the raw log.
+
+verified_patterns
+    Of those, how many were classified VERIFIED -- the engine's predicted
+    minimum frequency for that pattern was actually found in the log.
+
+discrepancy_patterns
+    How many were classified DISCREPANCY -- the pattern was found in the
+    log, but not as often as the engine's mathematics guaranteed (a
+    frequency mismatch, not a structural impossibility).
+
+ghost_patterns
+    How many were classified GHOST -- the engine predicted the pattern
+    would exist, but it could not be found in the log at all. A Ghost
+    Pattern indicates the mined model's structure has diverged from the
+    log's actual behavior (most often a symptom of an underfitted /
+    overly lenient mined model -- see the Ghost Trace discussion in
+    Chapter 5).
+
+nested_loops / nested_pars
+    How many distinct opaque [nested LOOP_k] / [nested PAR_k] blocks the
+    Atomic Fallback mechanism registered for this tree -- i.e. how many
+    separate Loop / Parallel sub-structures were abstracted into opaque
+    placeholders rather than expanded combinatorially.
+
+
+6. TREE EXPOSURE KPIs (tree-side: how much is structurally reconstructible)
+-------------------------------------------------------------------------------
+All percentages are of N, the total case volume. See Chapter 5, Section
+"Tree Exposure (Tree-Side KPI)" for the full formal definitions.
+
+end_to_end
+    The strictest measure: the percentage of cases for which the engine
+    can pin down one single, fully order-known chain spanning the entire
+    case, with zero embedded opaque placeholders anywhere. 0% is common on
+    real data -- it only takes one unresolved Parallel/Loop block anywhere
+    in the case to disqualify it entirely.
+
+fragment_level
+    A looser measure: the percentage of case volume covered by *any*
+    globally strict chain (no embedded opaque placeholder), even if that
+    chain does not span the whole case -- e.g. just a fixed-order prefix or
+    suffix fragment sitting outside every opaque block.
+
+fragment_level_min2
+    The same as fragment_level, but with isolated single-activity
+    fragments excluded (a lone activity has no internal order to
+    demonstrate, so counting it would overstate how much real "fixed
+    order" information exists).
+
+local_strict
+    A more permissive variant again: the percentage of case volume
+    explainable via locally-known (but not necessarily globally
+    positioned) strict content -- this can read high even when End-to-End
+    is 0%, since it also credits content whose order is only known
+    relative to its own opaque block, not the whole case. See the
+    "Local-Strict" caveat noted in this thesis's audit-report comments
+    (it does not by itself imply global order knowledge).
+
+local_strict_min2
+    The same as local_strict, with the same >=2-activity floor as
+    fragment_level_min2.
+
+total_forced_volume
+    The percentage of case volume for which the engine derives *some*
+    non-redundant, end-to-end account at all -- Strict Trace or Activity
+    Set, resolved or not. By construction,
+    end_to_end + as_resolved + as_opaque = total_forced_volume.
+
+as_resolved
+    Of total_forced_volume, the percentage that is Activity-Set-tagged but
+    whose referenced opaque block(s) resolve *internally* into pure Strict
+    Traces -- only the block's own boundary (which interleaving order, or
+    how many Loop redo iterations) remains open.
+
+as_resolved_par_only / as_resolved_loop_only
+    The same as_resolved share, split by whether the unresolved boundary
+    is a Parallel interleaving question (PAR-only) or a Loop redo-count
+    question (LOOP-only) -- these license structurally different claims
+    about the data.
+
+as_opaque
+    Of total_forced_volume, the percentage that is genuinely irreducible:
+    at least one referenced opaque block fails to resolve even internally.
+    This is the part of the case the engine can account for, but says
+    nothing at all about the order of.
+
+max_fractional_exposure / avg_fractional_exposure
+    Two estimate-based exposure variants (worst-case and typical-case
+    normalized against an *assumed* loop-iteration count) that were
+    present in earlier drafts of this evaluation but were explicitly
+    DROPPED from the reported KPI set in the final thesis text, because
+    they require assuming a loop-iteration count rather than deriving one
+    with certainty -- exactly the kind of probabilistic estimation this
+    thesis's research question is framed against. They are still computed
+    and included here for completeness/comparison, but are not part of
+    the thesis's headline reported measures; mean_absolute_exposure_volume
+    (below) is the estimate-free replacement that was kept instead.
+
+mean_absolute_exposure_volume
+    The average number of concrete, real (tau-free) activities known per
+    case, in absolute terms (events/case) rather than as a percentage of
+    an assumed case length. Unlike the two fractional-exposure variants
+    above, this needs no assumption about loop-iteration counts, which is
+    why it is the one quantity-of-content metric retained in the thesis's
+    final reported KPI set.
+
+
+7. DATA EXPOSURE KPIs (data-side: how much of the model's claims the raw log actually confirms)
+----------------------------------------------------------------------------------------------------
+See Chapter 5, Section "Data Exposure (Data-Side KPI)". All percentages are
+"confirmed claimed volume / total claimed volume", with a min(actual,
+expected) cap so a pattern found *more* often than guaranteed never
+inflates the score.
+
+data_exposure
+    Overall Data Exposure: across every pattern the engine extracted (both
+    Strict Traces and Activity Sets), what fraction of the claimed minimum
+    frequency is actually confirmed in the raw log.
+
+data_exposure_st_only
+    The same calculation restricted to genuinely globally-strict,
+    macro-level patterns only (no PAR/LOOP-internal content folded in).
+
+data_exposure_st_par
+    The same calculation, but additionally folding in individually
+    deterministic sub-fragments found inside a Parallel block (tagged
+    "(in PAR_k)") -- these carry a pure order guarantee, just not a global
+    position guarantee, so they are creditable here even though they are
+    excluded from the stricter ST-only variant.
+
+
+8. DATA COVERAGE KPIs (data-side: how much of the real log the model's verified claims explain)
+----------------------------------------------------------------------------------------------------
+See Chapter 5, Section "Data Coverage". This is the reverse question to
+Data Exposure: instead of asking "of what the model claims, how much is
+confirmed," it asks "of everything actually in the log, how much is
+explained by something verified." Only VERIFIED patterns count (a
+Discrepancy or Ghost pattern explains nothing here). Each real log
+position is attributed to the *strictest* applicable verified claim if
+more than one covers it.
+
+data_coverage_st_only
+    Percentage of all real log positions explained by a strict, non-PAR,
+    non-LOOP claim -- the data-side analogue of Tree Exposure's
+    end_to_end. The tightest, most informative coverage tier.
+
+data_coverage_st_par
+    Percentage of all real log positions explained once individually
+    strict claims found *inside* a Parallel block are also allowed to
+    count (but not loose/opaque Activity-Set claims) -- the data-side
+    analogue of as_resolved.
+
+data_coverage_total
+    Percentage of all real log positions explained by *any* verified claim
+    at all, including the loosest opaque Activity-Set/block-existence
+    claims with no order information whatsoever. This tier saturates near
+    100% very easily (see Chapter 5's discussion of why it is "the least
+    discriminating" of the three) -- a high data_coverage_total does NOT
+    mean most of the log's traces were correctly, strictly reconstructed,
+    only that almost every position is touched by *some* verified claim,
+    however vague.
+
+    The data-side analogue of Tree Exposure's as_opaque (i.e. coverage
+    contributed only by position-blind claims, with no order guarantee at
+    all) is not stored as its own column here, but can always be derived
+    as: data_coverage_total - data_coverage_st_par.

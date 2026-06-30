@@ -1,0 +1,78 @@
+// Process Tree
+digraph {
+	node [fontname=Arial shape=box style="rounded,filled"]
+	1415502281424 [label="→ (SEQ)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502281424 -> 1415500680272
+	1415500680272 [label="∗ (LOOP)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415500680272 -> 1415501205664
+	1415501205664 [label="A
+(n=8)" fillcolor="#E1F5FE" shape=ellipse]
+	1415500680272 -> 1415502255632
+	1415502255632 [label="τ
+(n=3)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502281424 -> 1415502348416
+	1415502348416 [label="→ (SEQ)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502348416 -> 1415502283504
+	1415502283504 [label="× (XOR)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502283504 -> 1415502357008
+	1415502357008 [label="τ
+(n=3)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502283504 -> 1415502350336
+	1415502350336 [label="→ (SEQ)
+(n=2)" fillcolor="#FFF9C4" shape=box]
+	1415502350336 -> 1415502359120
+	1415502359120 [label="D
+(n=2)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502350336 -> 1415502355568
+	1415502355568 [label="× (XOR)
+(n=2)" fillcolor="#FFF9C4" shape=box]
+	1415502355568 -> 1415502364352
+	1415502364352 [label="τ
+(n=1)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502355568 -> 1415502349328
+	1415502349328 [label="E
+(n=1)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502348416 -> 1415502363488
+	1415502363488 [label="∧ (PAR)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502363488 -> 1415502352112
+	1415502352112 [label="F
+(n=5)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502363488 -> 1415502360368
+	1415502360368 [label="× (XOR)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502360368 -> 1415502349424
+	1415502349424 [label="→ (SEQ)
+(n=3)" fillcolor="#FFF9C4" shape=box]
+	1415502349424 -> 1415502356720
+	1415502356720 [label="× (XOR)
+(n=3)" fillcolor="#FFF9C4" shape=box]
+	1415502356720 -> 1415502358880
+	1415502358880 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502356720 -> 1415502358496
+	1415502358496 [label="∧ (PAR)
+(n=3)" fillcolor="#FFF9C4" shape=box]
+	1415502358496 -> 1415502353792
+	1415502353792 [label="C
+(n=3)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502358496 -> 1415502351200
+	1415502351200 [label="B
+(n=3)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502349424 -> 1415502351104
+	1415502351104 [label="∗ (LOOP)
+(n=3)" fillcolor="#FFF9C4" shape=box]
+	1415502351104 -> 1415502350912
+	1415502350912 [label="G
+(n=6)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502351104 -> 1415502348608
+	1415502348608 [label="H
+(n=3)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502360368 -> 1415502356432
+	1415502356432 [label="τ
+(n=2)" fillcolor="#E1F5FE" shape=ellipse]
+}

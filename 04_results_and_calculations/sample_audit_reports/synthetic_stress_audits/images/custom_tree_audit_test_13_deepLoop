@@ -1,0 +1,54 @@
+// Process Tree
+digraph {
+	node [fontname=Arial shape=box style="rounded,filled"]
+	1415502245440 [label="→ (SEQ)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502245440 -> 1415502281088
+	1415502281088 [label="× (XOR)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502281088 -> 1415502296128
+	1415502296128 [label="τ
+(n=3)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502281088 -> 1415502283600
+	1415502283600 [label="A
+(n=2)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502245440 -> 1415502360224
+	1415502360224 [label="∗ (LOOP)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502360224 -> 1415502362672
+	1415502362672 [label="→ (SEQ)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502362672 -> 1415502360368
+	1415502360368 [label="B
+(n=10)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502362672 -> 1415502360608
+	1415502360608 [label="∧ (PAR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502360608 -> 1415502360848
+	1415502360848 [label="C
+(n=10)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502360608 -> 1415502360896
+	1415502360896 [label="× (XOR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502360896 -> 1415502358352
+	1415502358352 [label="τ
+(n=6)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502360896 -> 1415502360752
+	1415502360752 [label="D
+(n=4)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502360224 -> 1415502350480
+	1415502350480 [label="→ (SEQ)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502350480 -> 1415502357680
+	1415502357680 [label="E
+(n=5)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502350480 -> 1415502360320
+	1415502360320 [label="× (XOR)
+(n=5)" fillcolor="#FFF9C4" shape=box]
+	1415502360320 -> 1415502360944
+	1415502360944 [label="τ
+(n=4)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502360320 -> 1415502361808
+	1415502361808 [label="F
+(n=1)" fillcolor="#E1F5FE" shape=ellipse]
+}

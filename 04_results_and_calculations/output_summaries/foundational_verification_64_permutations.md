@@ -1,0 +1,70 @@
+# Foundational System Verification: 64-Permutation Matrix
+
+All 64 structural permutations of 3-operator combinations (SEQ/XOR/PAR/LOOP), each tested under Balanced/Left/Right frequency bias (N=500). Supports the appendix table referenced in Section 5.3 (Foundational System Verification).
+
+| Operators | Balanced | Left | Right | Any Errors? |
+| :--- | :--- | :--- | :--- | :--- |
+| `LOOP_LOOP_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_LOOP_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_LOOP_SEQ` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_LOOP_XOR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_PAR_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_PAR_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_PAR_SEQ` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_PAR_XOR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_SEQ_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_SEQ_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_SEQ_SEQ` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_SEQ_XOR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_XOR_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_XOR_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_XOR_SEQ` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `LOOP_XOR_XOR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_LOOP_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_LOOP_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_LOOP_SEQ` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_LOOP_XOR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_PAR_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_PAR_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_PAR_SEQ` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_PAR_XOR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_SEQ_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_SEQ_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_SEQ_SEQ` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_SEQ_XOR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_XOR_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_XOR_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_XOR_SEQ` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `PAR_XOR_XOR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_LOOP_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_LOOP_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_LOOP_SEQ` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_LOOP_XOR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_PAR_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_PAR_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_PAR_SEQ` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_PAR_XOR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_SEQ_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_SEQ_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_SEQ_SEQ` | ST only | ST only | ST only | No |
+| `SEQ_SEQ_XOR` | ST only | ST only | ST only | No |
+| `SEQ_XOR_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_XOR_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `SEQ_XOR_SEQ` | ST only | ST only | ST only | No |
+| `SEQ_XOR_XOR` | ST only | ST only | ST only | No |
+| `XOR_LOOP_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `XOR_LOOP_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `XOR_LOOP_SEQ` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `XOR_LOOP_XOR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `XOR_PAR_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `XOR_PAR_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `XOR_PAR_SEQ` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `XOR_PAR_XOR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `XOR_SEQ_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `XOR_SEQ_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `XOR_SEQ_SEQ` | ST only | ST only | ST only | No |
+| `XOR_SEQ_XOR` | ST only | ST only | ST only | No |
+| `XOR_XOR_LOOP` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `XOR_XOR_PAR` | Mixed (ST+AS) | Mixed (ST+AS) | Mixed (ST+AS) | No |
+| `XOR_XOR_SEQ` | ST only | ST only | ST only | No |
+| `XOR_XOR_XOR` | ST only | ST only | ST only | No |

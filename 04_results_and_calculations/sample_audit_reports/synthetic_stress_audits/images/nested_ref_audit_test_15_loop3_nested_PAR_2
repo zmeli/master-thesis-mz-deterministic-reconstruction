@@ -1,0 +1,102 @@
+// Process Tree
+digraph {
+	node [fontname=Arial shape=box style="rounded,filled"]
+	1415502277152 [label="∧ (PAR)
+(n=9)" fillcolor="#FFF9C4" shape=box]
+	1415502277152 -> 1415502650048
+	1415502650048 [label="× (XOR)
+(n=9)" fillcolor="#FFF9C4" shape=box]
+	1415502650048 -> 1415502650336
+	1415502650336 [label="τ
+(n=5)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502650048 -> 1415502650384
+	1415502650384 [label="G
+(n=4)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502277152 -> 1415502649520
+	1415502649520 [label="→ (SEQ)
+(n=9)" fillcolor="#FFF9C4" shape=box]
+	1415502649520 -> 1415502650480
+	1415502650480 [label="∗ (LOOP)
+(n=9)" fillcolor="#FFF9C4" shape=box]
+	1415502650480 -> 1415502650720
+	1415502650720 [label="→ (SEQ)
+(n=11)" fillcolor="#FFF9C4" shape=box]
+	1415502650720 -> 1415502650960
+	1415502650960 [label="× (XOR)
+(n=11)" fillcolor="#FFF9C4" shape=box]
+	1415502650960 -> 1415502651200
+	1415502651200 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502650960 -> 1415502651248
+	1415502651248 [label="D
+(n=11)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502650720 -> 1415502651008
+	1415502651008 [label="× (XOR)
+(n=11)" fillcolor="#FFF9C4" shape=box]
+	1415502651008 -> 1415502651344
+	1415502651344 [label="→ (SEQ)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502651344 -> 1415502651584
+	1415502651584 [label="× (XOR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502651584 -> 1415502651824
+	1415502651824 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502651584 -> 1415502651872
+	1415502651872 [label="∧ (PAR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502651872 -> 1415502652112
+	1415502652112 [label="× (XOR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502652112 -> 1415502652352
+	1415502652352 [label="τ
+(n=5)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502652112 -> 1415502652400
+	1415502652400 [label="C
+(n=5)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502651872 -> 1415502652160
+	1415502652160 [label="× (XOR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502652160 -> 1415502652496
+	1415502652496 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502652160 -> 1415502652544
+	1415502652544 [label="∗ (LOOP)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502652544 -> 1415502652784
+	1415502652784 [label="B
+(n=10)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502652544 -> 1415502652832
+	1415502652832 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502651344 -> 1415502651632
+	1415502651632 [label="× (XOR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502651632 -> 1415502652208
+	1415502652208 [label="τ
+(n=4)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502651632 -> 1415502652016
+	1415502652016 [label="E
+(n=6)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502651008 -> 1415502651392
+	1415502651392 [label="τ
+(n=1)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502650480 -> 1415502650768
+	1415502650768 [label="τ
+(n=2)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502649520 -> 1415502650528
+	1415502650528 [label="× (XOR)
+(n=9)" fillcolor="#FFF9C4" shape=box]
+	1415502650528 -> 1415502650864
+	1415502650864 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502650528 -> 1415502650672
+	1415502650672 [label="∗ (LOOP)
+(n=9)" fillcolor="#FFF9C4" shape=box]
+	1415502650672 -> 1415502652640
+	1415502652640 [label="F
+(n=9)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502650672 -> 1415502651488
+	1415502651488 [label="τ
+(n=0)" fillcolor="#E1F5FE" shape=ellipse]
+}

@@ -1,0 +1,141 @@
+# Process Engine Audit Report
+
+## Dataset & Audit Overview
+| Metric | Value |
+| :--- | :--- |
+| **Dataset Name** | `pdc2021_101010.xes` |
+| **Noise Threshold** | `1.0` |
+| **Fitness** | `0.8393713072960751` |
+| **Precision** | `0.15979381443298968` |
+| **Total Cases in Log** | `250` |
+| **Unique Activities** | `13` |
+| **XOR Operators** | `8` |
+| **LOOP Operators** | `3` |
+| **SEQ Operators** | `7` |
+| **PAR Operators** | `0` |
+| **Binarization Additions** | `7` |
+| **Tau Operators Added** | `2` |
+| **Total Found Patterns** | `21` |
+| **Verified Patterns** | `21` |
+| **Discrepancy Patterns** | `0` |
+| **Ghost Patterns** | `0` |
+| **Nested LOOPs** | `3` |
+| **Nested PARs** | `0` |
+| **Tree Exposure (Strict, End-to-End % of N)** | `0.00%` |
+| **Tree Exposure (Strict, Fragment-Level % of N)** | `57.25%` |
+| **Tree Exposure (Strict, Fragment-Level, >=2 activities, % of N)** | `40.55%` |
+| **Tree Exposure (Local-Strict % of N)** | `100.00%` |
+| **Tree Exposure (Local-Strict, >=2 activities, % of N)** | `40.55%` |
+| **Total Forced Volume (incl. unresolved AS, % of N)** | `0.00%` |
+| **AS-Resolved Volume (% of N)** | `0.00%` |
+| **AS-Resolved Volume, PAR-only (% of N)** | `0.00%` |
+| **AS-Resolved Volume, LOOP-only (% of N)** | `0.00%` |
+| **AS-Opaque Volume (% of N)** | `0.00%` |
+| **Data Exposure (Confirmed % of Claimed Volume)** | `100.00%` |
+| **Data Exposure, ST-only (% confirmed)** | `100.00%` |
+| **Data Exposure, ST + ST-in-PAR (% confirmed)** | `100.00%` |
+| **Data Coverage, ST-only (% of real log)** | `63.44%` |
+| **Data Coverage, ST + ST-in-PAR (% of real log)** | `63.44%` |
+| **Data Coverage, Total (% of real log)** | `99.76%` |
+| **Max Fractional Exposure (Worst-Case Normalized)** | `1.66%` |
+| **Avg Fractional Exposure (Typical-Case Normalized)** | `57.25%` |
+| **Mean Absolute Exposure Volume (events/case)** | `1.67` |
+
+---
+
+## Original PM4Py Tree
+
+![Original PM4Py Tree](images/orig_tree_audit_pdc2021_101010__noise1.0.png)
+
+
+```text
+->( 't09', 't10', X( ->( 't06', 't04', 't03', 't02' ), ->( X( tau, *( 't15', tau ), 't11', 't20' ), X( *( 't65', tau ), 't71', *( 't17', tau ) ), 't66' ) ) )
+```
+
+## Assimilated Master Tree
+
+![Assimilated Master Tree](images/custom_tree_audit_pdc2021_101010__noise1.0.png)
+
+
+
+## Trace Verification
+
+| Type | Abstract Pattern | Variations Observed | Predicted Freq | Actual Log Freq | Audit Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `[ST]` | `t09` | Exact Token Match | $\ge$ 182 | **182** | ✅ **VERIFIED** |
+| `[ST]` | `t10` | Exact Token Match | $\ge$ 250 | **250** | ✅ **VERIFIED** |
+| `[ST (in LOOP_1)]` | `t15` | Exact Token Match | $\ge$ 54 | **54** | ✅ **VERIFIED** |
+| `[ST]` | `⟨t15⟩` | Exact Token Match | $\ge$ 12 | **41** | ✅ **VERIFIED** |
+| `[AS]` | `[nested LOOP_1]` | Exact Token Match | $\ge$ 1 | **46** | ✅ **VERIFIED** |
+| `[ST]` | `t11` | Exact Token Match | $\ge$ 87 | **141** | ✅ **VERIFIED** |
+| `[ST]` | `t20` | Exact Token Match | $\ge$ 130 | **212** | ✅ **VERIFIED** |
+| `[ST (in LOOP_2)]` | `t65` | Exact Token Match | $\ge$ 341 | **341** | ✅ **VERIFIED** |
+| `[AS]` | `[nested LOOP_2]` | Exact Token Match | $\ge$ 1 | **240** | ✅ **VERIFIED** |
+| `[ST]` | `t71` | Exact Token Match | $\ge$ 10 | **25** | ✅ **VERIFIED** |
+| `[ST (in LOOP_3)]` | `t17` | Exact Token Match | $\ge$ 246 | **246** | ✅ **VERIFIED** |
+| `[AS]` | `[nested LOOP_3]` | Exact Token Match | $\ge$ 1 | **213** | ✅ **VERIFIED** |
+| `[ST]` | `t66` | Exact Token Match | $\ge$ 197 | **197** | ✅ **VERIFIED** |
+| `[ST]` | `⟨t10, t15⟩` | Exact Token Match | $\ge$ 12 | **41** | ✅ **VERIFIED** |
+| `[ST]` | `⟨t10, [nested LOOP_1]⟩` | Exact Token Match | $\ge$ 1 | **46** | ✅ **VERIFIED** |
+| `[ST]` | `⟨t10, t11⟩` | Exact Token Match | $\ge$ 87 | **141** | ✅ **VERIFIED** |
+| `[ST]` | `⟨t10, t20⟩` | Exact Token Match | $\ge$ 130 | **212** | ✅ **VERIFIED** |
+| `[ST]` | `⟨t09, t10, t11⟩` | Exact Token Match | $\ge$ 19 | **104** | ✅ **VERIFIED** |
+| `[ST]` | `⟨t09, t10, t20⟩` | Exact Token Match | $\ge$ 62 | **155** | ✅ **VERIFIED** |
+| `[ST]` | `⟨t09, t10⟩` | Exact Token Match | $\ge$ 182 | **182** | ✅ **VERIFIED** |
+| `[ST]` | `⟨τ, t10⟩` | Exact Token Match | $\ge$ 68 | **250** | ✅ **VERIFIED** |
+
+## Audit Summary
+- **Perfect Pattern Verifications:** 21
+- **Frequency Discrepancies:** 0
+- **Ghost Patterns (Fatal):** 0
+- **Skipped (Complexity > 1000):** 0
+- **Tree Exposure (Strict, End-to-End % of N):** 0.00%
+- **Tree Exposure (Strict, Fragment-Level % of N):** 57.25%
+- **Tree Exposure (Strict, Fragment-Level, >=2 activities, % of N):** 40.55%
+- **Tree Exposure (Local-Strict % of N):** 100.00% ⚠️ *includes locally-known content inside opaque PAR/LOOP blocks -- can read near 100% even when End-to-End is 0%*
+- **Tree Exposure (Local-Strict, >=2 activities, % of N):** 40.55%
+- **Total Forced Volume (incl. unresolved AS, % of N):** 0.00%
+- **AS-Resolved Volume (% of N):** 0.00%
+- **AS-Resolved Volume, PAR-only (unordered co-occurrence, % of N):** 0.00%
+- **AS-Resolved Volume, LOOP-only (unknown redo count, % of N):** 0.00%
+- **AS-Opaque Volume (% of N):** 0.00%
+- **Data Exposure (Confirmed % of Claimed Volume):** 100.00%
+- **Data Exposure, ST-only (% of claimed ST volume confirmed in log):** 100.00%
+- **Data Exposure, ST + ST-in-PAR (% of claimed volume confirmed in log):** 100.00%
+- **Data Coverage, ST-only (% of real log explained by VERIFIED strict patterns):** 63.44%
+- **Data Coverage, ST + ST-in-PAR (% of real log explained):** 63.44%
+- **Data Coverage, Total (% of real log explained by any VERIFIED pattern):** 99.76%
+- **Max Fractional Exposure (Worst-Case Normalized):** 1.66% (expected length: 206.52 events)
+- **Avg Fractional Exposure (Typical-Case Normalized):** 57.25% (expected length: 5.99 events)
+- **Mean Absolute Exposure Volume:** 1.67 events/case
+
+---
+
+## Nested Structures Reference
+The following complex blocks were abstracted during the audit to prevent combinatorial explosion:\n
+### `[nested LOOP_1]`
+- **Internal Structure:** `(t15 ∗ τ)`
+- **Block Frequency:** 33
+
+- **Max Loop Iterations:** `21`
+- **Max Sub-Sequence Length:** `43` steps (if one case consumes all iterations)
+
+![nested LOOP_1 Internal Diagram](images/nested_ref_audit_pdc2021_101010_nested_LOOP_1.png)
+
+### `[nested LOOP_2]`
+- **Internal Structure:** `(t65 ∗ τ)`
+- **Block Frequency:** 139
+
+- **Max Loop Iterations:** `202`
+- **Max Sub-Sequence Length:** `405` steps (if one case consumes all iterations)
+
+![nested LOOP_2 Internal Diagram](images/nested_ref_audit_pdc2021_101010_nested_LOOP_2.png)
+
+### `[nested LOOP_3]`
+- **Internal Structure:** `(t17 ∗ τ)`
+- **Block Frequency:** 101
+
+- **Max Loop Iterations:** `145`
+- **Max Sub-Sequence Length:** `291` steps (if one case consumes all iterations)
+
+![nested LOOP_3 Internal Diagram](images/nested_ref_audit_pdc2021_101010_nested_LOOP_3.png)

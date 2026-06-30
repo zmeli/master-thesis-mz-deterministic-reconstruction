@@ -1,0 +1,24 @@
+// Process Tree
+digraph {
+	node [fontname=Arial shape=box style="rounded,filled"]
+	1415502208544 [label="→ (SEQ)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502208544 -> 1415502285136
+	1415502285136 [label="× (XOR)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502285136 -> 1415502284368
+	1415502284368 [label="A
+(n=9)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502285136 -> 1415502251792
+	1415502251792 [label="B
+(n=1)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502208544 -> 1415502647648
+	1415502647648 [label="∗ (LOOP)
+(n=10)" fillcolor="#FFF9C4" shape=box]
+	1415502647648 -> 1415502647504
+	1415502647504 [label="C
+(n=13)" fillcolor="#E1F5FE" shape=ellipse]
+	1415502647648 -> 1415502646880
+	1415502646880 [label="D
+(n=3)" fillcolor="#E1F5FE" shape=ellipse]
+}
