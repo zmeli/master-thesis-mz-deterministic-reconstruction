@@ -1,12 +1,4 @@
-# Thesis Upload Package
-
 **An Analytical Approach to Control-flow Reconstruction Attacks on Business Process Models**
-Melanie Maria Zumtobel — University of Liechtenstein, Information Systems
-
-This package bundles the thesis together with every accompanying artifact the
-thesis refers to: the source code, the curated data the evaluation runs on, and
-the calculation/result documents behind the reported numbers, figures, and
-appendices.
 
 ---
 
