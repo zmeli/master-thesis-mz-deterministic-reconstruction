@@ -3,35 +3,24 @@ import warnings
 import ast
 from core.tree_node import ProcessTreeNode
 
-'''
-Class: RandomTreeGenerator
-Description: 
-    Generates process trees for testing purposes. It can create fully random structures or 
-    build trees following specific blueprint tuples while handling syntax errors.
-
-Methods:
-    - __init__: Initializes the generator state. Returns None. 
-      Called by: main.py.
-    - _get_next_activity_name: Generates incremental letters (A, B, C). Returns str. 
-      Called by: _generate_random_tree_recursive, _generate_from_blueprint_recursive.
-    - generate_random_tree: Public entry point for random generation. Returns ProcessTreeNode. 
-      Called by: main.py.
-    - generate_from_blueprint: Public entry point for tuple blueprint generation. Returns ProcessTreeNode. 
-      Called by: main.py.
-    - _generate_random_tree_recursive: Internal recursive random tree builder. Returns ProcessTreeNode. 
-      Called by: RandomTreeGenerator.generate_random_tree, and recursively by itself.
-    - _generate_from_blueprint_recursive: Internal recursive blueprint builder. Returns ProcessTreeNode. 
-      Called by: RandomTreeGenerator.generate_from_blueprint, and recursively by itself.
-    - assign_frequencies: Distributes root frequency top-down algorithmically. Returns None. 
-      Called by: main.py, and recursively by itself.
-'''
 class RandomTreeGenerator:
+    """
+    Generates binary process trees for testing.
+
+    Produces either fully random structures (bounded by depth) or trees matching
+    a supplied blueprint tuple, tolerating malformed blueprints by warning and
+    falling back. Also assigns synthetic top-down frequencies to provide a
+    mathematical ground truth for validating the analyzer.
+
+    Attributes:
+        operators: The structural operators available for generation.
+    """
     def __init__(self):
         self.operators = ['SEQ', 'XOR', 'PAR', 'LOOP']
         self._activity_counter = 0
 
-    # Returns the next letter in the alphabet as an activity name (A, B, ..., Z, AA, AB, ...).
     def _get_next_activity_name(self) -> str:
+        """Return the next spreadsheet-style activity name (A, B, …, Z, AA, …)."""
         n = self._activity_counter
         self._activity_counter += 1
         result = ""
@@ -40,13 +29,34 @@ class RandomTreeGenerator:
             n = n // 26 - 1
         return result
 
-    # Public entry point: resets the activity counter and builds a random binary tree.
     def generate_random_tree(self, max_depth: int) -> ProcessTreeNode:
+        """
+        Build a random binary tree, resetting activity naming first.
+
+        Args:
+            max_depth: Maximum depth of the generated tree.
+
+        Returns:
+            The root :class:`ProcessTreeNode` of the random tree.
+        """
         self._activity_counter = 0
         return self._generate_random_tree_recursive(max_depth, current_depth=0)
 
-    # Public entry point: resets the activity counter and builds a tree from a blueprint.
     def generate_from_blueprint(self, blueprint) -> ProcessTreeNode:
+        """
+        Build a tree from a blueprint, resetting activity naming first.
+
+        Accepts a nested tuple/list or its string form; strings are parsed with
+        :func:`ast.literal_eval`, and a malformed blueprint triggers a warning and
+        a fallback to a random tree of depth 3.
+
+        Args:
+            blueprint: A nested ``(op, left, right)`` structure, or its string
+                representation.
+
+        Returns:
+            The root :class:`ProcessTreeNode` built from the blueprint.
+        """
         self._activity_counter = 0
         
         # If a string is passed, safely parse it as a Python tuple using ast.literal_eval.
@@ -70,8 +80,21 @@ class RandomTreeGenerator:
 
         return self._generate_from_blueprint_recursive(blueprint)
 
-    # Recursively builds a random binary tree by selecting random operators and limiting depth.
     def _generate_random_tree_recursive(self, max_depth: int, current_depth: int) -> ProcessTreeNode:
+        """
+        Recursively build a random binary subtree.
+
+        Emits a named leaf once ``max_depth`` is hit or, past the root, with a
+        30% early-stop probability; otherwise picks a random operator and
+        generates two children.
+
+        Args:
+            max_depth: Maximum depth allowed.
+            current_depth: Depth of the node being generated.
+
+        Returns:
+            The generated :class:`ProcessTreeNode` subtree.
+        """
         if current_depth >= max_depth or (current_depth > 0 and random.random() < 0.3):
             return ProcessTreeNode(operator="LEAF", name=self._get_next_activity_name())
 
@@ -81,9 +104,22 @@ class RandomTreeGenerator:
         node.add_child(self._generate_random_tree_recursive(max_depth, current_depth + 1))
         return node
 
-    # Recursively builds a specific tree structure from parsed blueprint tuples.
-    # Fills missing tuple positions with auto-named leaves and validates structural errors.
     def _generate_from_blueprint_recursive(self, blueprint) -> ProcessTreeNode:
+        """
+        Recursively build a subtree from a parsed blueprint node.
+
+        Handles ``None``/``"LEAF"`` (auto-named leaf), operator strings, and
+        ``(op, left, right)`` tuples, filling missing positions with leaves.
+        Structural problems -- unknown operators, missing commas between
+        operators, or excess tuple elements -- emit warnings and fall back to a
+        sensible default rather than raising.
+
+        Args:
+            blueprint: The blueprint node (``None``, string, or tuple) to build.
+
+        Returns:
+            The generated :class:`ProcessTreeNode` subtree.
+        """
         if blueprint is None or blueprint == "LEAF":
             return ProcessTreeNode(operator="LEAF", name=self._get_next_activity_name())
             
@@ -142,12 +178,22 @@ class RandomTreeGenerator:
             warnings.warn(f"Invalid blueprint type: {type(blueprint)}. Generating a LEAF instead.")
             return ProcessTreeNode(operator="LEAF", name=self._get_next_activity_name())
 
-    # Distributes a total root frequency top-down to provide the mathematical ground truth
-    # for validating the analyzer's bottom-up frequency calculations.
     def assign_frequencies(self, node: ProcessTreeNode, total_frequency: int, bias: str = None):
         """
-        Distributes frequencies top-down. 
-        :param bias: 'left', 'right', 'balanced', or None (Random).
+        Distribute a root frequency top-down to create a ground-truth tree.
+
+        Provides the reference frequencies used to validate the analyzer's
+        bottom-up calculations. SEQ/PAR pass the full count to each child; XOR
+        splits it per ``bias``; LOOP derives loop-back traffic per ``bias``.
+
+        Args:
+            node: Subtree root to populate (modified in place).
+            total_frequency: Token count entering ``node``.
+            bias: Distribution bias -- ``'left'``, ``'right'``, ``'balanced'``, or
+                ``None`` for a purely random split.
+
+        Returns:
+            None. Frequencies are written onto the nodes in place.
         """
         node.frequency = total_frequency
         if node.operator == 'LEAF': return

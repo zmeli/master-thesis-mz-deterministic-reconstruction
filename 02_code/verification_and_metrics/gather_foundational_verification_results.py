@@ -1,11 +1,10 @@
 """
-Gathers results for the thesis's "Foundational System Verification" section
-(Chapter 5): generates all 64 structural permutations of 3-operator combinations
-({SEQ,XOR,PAR,LOOP}^3, balanced binary trees) across the 3 frequency bias states
-(Balanced/Left/Right) used by manual_testing.documenter.PermutationDocumenter, and
-classifies the Deterministic Engine's output for each into Strict Trace (ST) /
-Activity Set (AS) / Error outcomes -- directly producing the appendix table the
-thesis text currently flags as "[APPENDIX REF: Insert reference to a table...]".
+Gathers results for the Foundational System Verification stage: generates all 64
+structural permutations of 3-operator combinations ({SEQ,XOR,PAR,LOOP}^3, balanced
+binary trees) across the 3 frequency bias states (Balanced/Left/Right) used by
+manual_testing.documenter.PermutationDocumenter, and classifies the Deterministic
+Engine's output for each into Strict Trace (ST) / Activity Set (AS) / Error outcomes
+-- directly producing the appendix summary table of these outcomes.
 
 Reuses the same tree-generation logic as PermutationDocumenter, but skips the
 markdown-diagram rendering (ReportBuilder) entirely, since only the classification
@@ -18,7 +17,7 @@ time. Confirmed in practice: across two unseeded runs, the qualitative ST-only-v
 classification was stable for every combination except one (XOR_SEQ_LOOP, Right bias),
 which occasionally drew a zero-repeat frequency for its LOOP node -- a degenerate loop
 whose redo branch never fires, which correctly produces no Activity Set per the engine's
-own documented behavior (Section 4.5.2, "Scope of the Opaque Encapsulation"). Seeding
+own documented "Scope of the Opaque Encapsulation" behavior. Seeding
 makes the appendix table below an exact, citable snapshot rather than one example among
 several equally valid ones.
 """
@@ -105,8 +104,7 @@ def main():
         f.write("# Foundational System Verification: 64-Permutation Matrix\n\n")
         f.write(f"All {len(permutations)} structural permutations of 3-operator combinations "
                 f"({'/'.join(OPERATORS)}), each tested under Balanced/Left/Right frequency bias "
-                f"(N={ROOT_N}). Supports the appendix table referenced in Section 5.3 "
-                "(Foundational System Verification).\n\n")
+                f"(N={ROOT_N}). Supports the Foundational System Verification appendix table.\n\n")
         f.write("| Operators | Balanced | Left | Right | Any Errors? |\n")
         f.write("| :--- | :--- | :--- | :--- | :--- |\n")
         for combo, combo_rows in sorted(by_combo.items()):

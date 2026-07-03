@@ -17,16 +17,38 @@ class DataAssimilation:
 
     @staticmethod
     def assimilate_from_file(file_path: str, analyzer, noise_threshold: float = 0.0, compute_metrics: bool = True) -> ProcessTreeNode:
-        """Mines and annotates model with log frequencies.
+        """
+        Mine a process tree from a log file and annotate it with frequencies.
 
-        compute_metrics: if False, skips PM4Py's Fitness/Precision token-based replay
-        (Step 4 below) -- by far the slowest part of this pipeline (observed ~240s/file
-        at noise 0.0 vs. ~4s/file without it). Neither the Deterministic Engine's
-        extraction, the Trace Verifier's pattern matching, nor the Tree/Data/fractional
-        exposure metrics use pm4py_fitness/pm4py_precision at all, so this is safe to
-        skip whenever those two headline numbers aren't needed for the report (e.g. bulk
-        recalculation of exposure metrics against already-audited datasets, where
-        Fitness/Precision can be reused from the existing report instead of redone).
+        Loads and cleans the log, discovers a process tree via PM4Py's Inductive
+        Miner, optionally evaluates conformance metrics, converts the result into
+        a strict binary :class:`ProcessTreeNode`, and reconciles its frequencies
+        against the true case count using ``analyzer``.
+
+        Args:
+            file_path: Path to the event log (CSV or XES-family format).
+            analyzer: A :class:`ProcessTreeAnalyzer` used to push the mined
+                frequencies onto the converted tree (via ``compute_frequencies``).
+            noise_threshold: Inductive-miner noise threshold in ``[0.0, 1.0]``
+                controlling how aggressively infrequent behavior is filtered.
+            compute_metrics: If ``False``, skips PM4Py's Fitness/Precision
+                token-based replay (Step 4 below) -- by far the slowest part of
+                this pipeline (observed ~240s/file at noise 0.0 vs. ~4s/file
+                without it). Neither the Deterministic Engine's extraction, the
+                Trace Verifier's pattern matching, nor the Tree/Data/fractional
+                exposure metrics use pm4py_fitness/pm4py_precision at all, so this
+                is safe to skip whenever those two headline numbers aren't needed
+                for the report (e.g. bulk recalculation of exposure metrics against
+                already-audited datasets, where Fitness/Precision can be reused
+                from the existing report instead of redone).
+
+        Returns:
+            The root :class:`ProcessTreeNode` of the reconciled binary tree, with
+            ``pm4py_fitness``, ``pm4py_precision``, and ``binarization_additions``
+            attributes attached.
+
+        Raises:
+            ImportError: If PM4Py is not installed.
         """
         if not _PM4PY_AVAILABLE:
             raise ImportError(
@@ -38,14 +60,6 @@ class DataAssimilation:
         df_clean = DataAssimilation._prepare_log_dataframe(file_path)
 
         # 2. Force PM4Py to use EXACTLY our pristine columns.
-        # NOTE: pm4py.format_dataframe() internally calls
-        # dataframe_utils.convert_timestamp_columns_in_df(), which tries to
-        # coerce EVERY string/object column (not just the timestamp column)
-        # into a datetime using a lenient "mixed" parser. Short alphanumeric
-        # activity labels (e.g. "t09", "t71") can get silently misparsed as
-        # dates this way. Casting to 'category' dodges that dtype check;
-        # format_dataframe's own later `.astype("string")` step then
-        # restores the original labels untouched.
         df_clean['concept:name'] = df_clean['concept:name'].astype('category')
         log = pm4py.format_dataframe(
             df_clean,
@@ -91,7 +105,25 @@ class DataAssimilation:
 
     @staticmethod
     def _prepare_log_dataframe(file_path: str) -> pd.DataFrame:
-        """Loads log and uses Semantic Data Checking to bypass all column-name corruption."""
+        """
+        Load a log file into a normalized case/activity/timestamp DataFrame.
+
+        Reads the log (CSV or XES-family), then uses semantic data checking --
+        inspecting values rather than trusting column names -- to locate the case,
+        timestamp, and activity columns, tolerating corrupted or non-standard
+        headers. Missing timestamps are replaced with synthetic per-case
+        chronological ones.
+
+        Args:
+            file_path: Path to the event log to load.
+
+        Returns:
+            A DataFrame with exactly the columns ``'case:concept:name'``,
+            ``'concept:name'``, and ``'time:timestamp'``.
+
+        Raises:
+            ValueError: If the file extension is not supported.
+        """
         if file_path.lower().endswith('.csv'):
             try:
                 df = pd.read_csv(file_path, sep=None, engine='python', low_memory=False)
@@ -130,13 +162,6 @@ class DataAssimilation:
                 time_col = c
                 break
             
-            # If it looks like a standard timestamp (e.g., "2042-01-01", "01/01/2042",
-            # or "1/12/15 0:00:00" -- BPIC2015's M/D/YY format, 1-2 digit month/day
-            # and a 2-or-4-digit year, which the original 4-digit-year-only pattern
-            # below missed entirely, falling through to whichever later column
-            # happened to look date-like first -- on BPIC2015 that was a column with
-            # genuine mixed CET/CEST offsets, which pandas refuses to parse without
-            # an explicit utc=True).
             sample = df[c].dropna().astype(str).head(10)
             if not sample.empty and sample.str.contains(r'^\d{4}-\d{2}-\d{2}|^\d{1,2}/\d{1,2}/\d{2,4}', regex=True).all():
                 time_col = c
@@ -180,6 +205,25 @@ class DataAssimilation:
 
     @staticmethod
     def _convert_node(pm_node, activity_counts: dict, binarization_counter: list) -> ProcessTreeNode:
+        """
+        Recursively convert a PM4Py process-tree node into a ProcessTreeNode.
+
+        Maps PM4Py operators to the internal operator names, turns operator-less
+        nodes into (possibly tau) leaves annotated with their activity count, and
+        binarizes children with more than two branches.
+
+        Args:
+            pm_node: The PM4Py process-tree node to convert.
+            activity_counts: Mapping of activity name to its occurrence count.
+            binarization_counter: Single-element list used as a mutable counter,
+                incremented once per extra binarization node introduced.
+
+        Returns:
+            The converted :class:`ProcessTreeNode` subtree.
+
+        Raises:
+            ValueError: If ``pm_node`` uses an unrecognized operator.
+        """
         op_map = { Operator.SEQUENCE: "SEQ", Operator.XOR: "XOR", Operator.PARALLEL: "PAR", Operator.LOOP: "LOOP" }
         if pm_node.operator is None:
             name = str(pm_node.label) if pm_node.label else "τ"
@@ -193,6 +237,24 @@ class DataAssimilation:
 
     @staticmethod
     def _binarize_children(op_name: str, children: list, binarization_counter: list) -> ProcessTreeNode:
+        """
+        Fold a list of children into a strict binary subtree for ``op_name``.
+
+        Zero children collapse to a silent (tau) leaf and a single child is
+        returned unchanged. Three or more children are right-folded into nested
+        binary operators of the same type, incrementing ``binarization_counter``
+        for each extra node created.
+
+        Args:
+            op_name: Internal operator name (``'SEQ'``, ``'XOR'``, ``'PAR'``,
+                ``'LOOP'``) to apply.
+            children: The already-converted child nodes to combine.
+            binarization_counter: Single-element list used as a mutable counter,
+                incremented once per extra binarization node introduced.
+
+        Returns:
+            A binary :class:`ProcessTreeNode` representing the combined children.
+        """
         if len(children) == 0: return ProcessTreeNode("LEAF", name="empty_tau", frequency=0)
         if len(children) == 1: return children[0]
         if len(children) == 2:

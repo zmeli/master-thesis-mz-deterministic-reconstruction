@@ -5,7 +5,18 @@ from typing import List, Tuple
 OP_SYMBOLS = {'SEQ': '→', 'XOR': '×', 'PAR': '∧', 'LOOP': '∗'}
 
 def get_tree_string(node) -> str:
-    """Returns the tree as a string using logical operator symbols for CLI display."""
+    """
+    Render a tree as a nested string using operator symbols for CLI display.
+
+    Leaves are shown as ``name:frequency``; operators use their symbol from
+    ``OP_SYMBOLS`` (e.g. ``→``, ``×``) wrapping their children.
+
+    Args:
+        node: The (sub)tree root to render.
+
+    Returns:
+        The symbolic string representation of the tree.
+    """
     if node.operator == 'LEAF':
         return f"{node.name}:{node.frequency}"
     op_str = OP_SYMBOLS.get(node.operator, node.operator)
@@ -13,7 +24,19 @@ def get_tree_string(node) -> str:
     return f"{op_str}({', '.join(child_strs)})"
 
 def get_node_label(node, show_freq: bool = True) -> str:
-    """Generates a formatted label string for Graphviz node boxes."""
+    """
+    Build a formatted label for a Graphviz node box.
+
+    Leaves show their name; operators show their symbol and name (e.g.
+    ``× (XOR)``). A frequency line (``n=...``) is appended when requested.
+
+    Args:
+        node: The node to label.
+        show_freq: If ``True``, include the node's frequency in the label.
+
+    Returns:
+        The multi-line label string.
+    """
     if node.operator == 'LEAF':
         return f"{node.name}\n(n={node.frequency})" if show_freq else node.name
         
@@ -24,8 +47,18 @@ def get_node_label(node, show_freq: bool = True) -> str:
 
 def get_flat_representation(node) -> str:
     """
-    Recursively generates the atomic string representation.
-    Visually flattens redundant structural brackets dynamically.
+    Render a node's atomic representation, flattening redundant brackets.
+
+    Uses the bracket notation ``⟨…⟩`` (SEQ), ``{…}`` (PAR), ``[… │ …]`` (XOR),
+    and ``(… ∗ …)`` (LOOP). Nested children of the same associative operator have
+    their outer brackets stripped so the result reads flat rather than deeply
+    nested.
+
+    Args:
+        node: The (sub)tree root to render.
+
+    Returns:
+        The flattened atomic string representation.
     """
     if node.operator == 'LEAF':
         return str(node.name)
@@ -46,15 +79,22 @@ def get_flat_representation(node) -> str:
         
     if node.operator == 'SEQ': return f"⟨{', '.join(child_strings)}⟩"
     if node.operator == 'PAR': return f"{{{', '.join(child_strings)}}}"
-    # FIX: Using safe Unicode Light Vertical Bar '│' instead of standard pipe '|' 
-    # to prevent breaking Markdown tables within backticks.
     if node.operator == 'XOR': return f"[{' │ '.join(child_strings)}]"
     if node.operator == 'LOOP': return f"({' ∗ '.join(child_strings)})"
     
     return ""
 
 def is_sublist(small_list: List[str], large_list: List[str]) -> bool:
-    """Safely checks if one list of activities is a contiguous sub-path of another."""
+    """
+    Check whether ``small_list`` occurs as a contiguous slice of ``large_list``.
+
+    Args:
+        small_list: The candidate sub-path of activities.
+        large_list: The full path to search within.
+
+    Returns:
+        ``True`` if ``small_list`` appears contiguously in ``large_list``.
+    """
     n, m = len(small_list), len(large_list)
     for i in range(m - n + 1):
         if large_list[i:i+n] == small_list:
@@ -65,7 +105,22 @@ def print_analysis_report(
     tree_string: str, total_n: int, 
     forced_traces: List[Tuple[any, int, str]], show_legend: bool = True
 ):
-    """Prints the CLI analysis report."""
+    """
+    Print the deterministic reconstruction report to the CLI.
+
+    Renders a header, then a de-duplicated table of forced traces sorted by
+    length, frequency, and type, followed by an optional legend explaining the
+    trace types and bracket notation.
+
+    Args:
+        tree_string: Symbolic string of the analyzed tree (for the header).
+        total_n: Log size (root token count) to display.
+        forced_traces: List of ``(node, frequency, type)`` tuples to tabulate.
+        show_legend: If ``True``, append the notation legend.
+
+    Returns:
+        None. Output is printed to stdout.
+    """
     print("\n" + "="*85)
     print("DETERMINISTIC CONTROL-FLOW RECONSTRUCTION")
     print("="*85)

@@ -1,16 +1,27 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-import gzip # <--- NEW IMPORT
+import gzip
 
 def extract_traces_to_md(xml_file, output_md):
     """
-    Parses an XES/XML process log and exports the traces into a Markdown file.
+    Export the activity sequences of an XES/XML log to a Markdown file.
+
+    Parses the (optionally gzip-compressed) log, extracts each trace's ordered
+    ``concept:name`` activities using namespace-wildcard queries, and writes one
+    arrow-joined sequence per trace to the output Markdown file.
+
+    Args:
+        xml_file: Path to the input XES/XML log (``.gz`` supported).
+        output_md: Path of the Markdown file to write.
+
+    Returns:
+        None. The Markdown file is written and a summary line is printed. Parsing
+        errors are caught and reported instead of raised.
     """
     print(f"Parsing XML file: {xml_file}...")
     
     try:
         path_obj = Path(xml_file)
-        # --- NEW LOGIC: Check if it is compressed ---
         if path_obj.suffix.lower() == '.gz':
             # Open as a decompressed text stream
             with gzip.open(xml_file, 'rt', encoding='utf-8') as f:
@@ -20,7 +31,6 @@ def extract_traces_to_md(xml_file, output_md):
             tree = ET.parse(xml_file)
             
         root = tree.getroot()
-        # ------------------------------------------
         
     except Exception as e:
         print(f"Error reading the XML file: {e}")

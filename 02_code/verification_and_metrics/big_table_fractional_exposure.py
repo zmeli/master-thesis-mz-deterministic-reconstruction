@@ -12,7 +12,8 @@ They must be recomputed from the original .xes input files.
 To avoid repeating the original verifier's slowest step, this script builds the tree
 with DataAssimilation.assimilate_from_file(..., compute_metrics=False), which skips
 PM4Py's Fitness/Precision token-based replay (the `replaying log with TBR` step that
-made the original 224-file/noise-level batches take 15h down to ~1h each). This same
+made the original 224-file/noise-level batches take ~15h each, bringing them down to
+~1h each). This same
 toggle is also wired into auto_verifier_v2.LogTraceVerifier(compute_fitness_precision=
 False) for future full-audit runs. Fitness and Precision are instead read back from the
 existing, already-computed report text here -- no information is lost, the expensive
@@ -40,7 +41,7 @@ OVERVIEW_FIELDS = [
     "Unique Activities", "XOR Operators", "LOOP Operators", "SEQ Operators", "PAR Operators",
     "Binarization Additions", "Tau Operators Added", "Total Found Patterns",
     "Verified Patterns", "Discrepancy Patterns", "Ghost Patterns", "Nested LOOPs", "Nested PARs",
-    "Tree Exposure (Model-Forced % of N)", "Data Exposure (Confirmed % of Claimed Volume)",
+    "Tree Exposure (Strict, End-to-End % of N)", "Data Exposure (Confirmed % of Claimed Volume)",
 ]
 
 

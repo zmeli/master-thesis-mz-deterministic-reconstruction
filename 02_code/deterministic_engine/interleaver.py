@@ -1,9 +1,29 @@
+"""
+Generate synthetic CSV event logs dominated by one control-flow construct.
+
+Each ``generate_trace_*`` function returns one case whose behavior is dominated by
+a single operator (sequence, choice, loop, or parallel) with minor amounts of the
+others mixed in. :func:`create_dataset` samples a generator across many cases with
+synthetic timestamps, and running the module as a script writes four such
+operator-biased datasets to CSV.
+"""
 import pandas as pd
 import random
 from datetime import datetime, timedelta
 
 def interleave(traces):
-    """Helper function to simulate Parallel (PAR) execution by randomly interleaving branches."""
+    """
+    Randomly interleave several sequences to simulate parallel (PAR) execution.
+
+    Each input sequence keeps its own internal order; at each step an activity is
+    drawn from a randomly chosen still-unfinished branch.
+
+    Args:
+        traces: The branch sequences to interleave.
+
+    Returns:
+        A single interleaved list of activities.
+    """
     result = []
     ptrs = [0] * len(traces)
     while True:
@@ -15,11 +35,8 @@ def interleave(traces):
         ptrs[choice] += 1
     return result
 
-# ==========================================
-# TRACE GENERATORS
-# ==========================================
-
 def generate_trace_seq_heavy():
+    """Return one case dominated by a long sequence, with minor XOR/PAR/LOOP."""
     # Dominant: Sequence (1 to 15)
     trace = [f"Act_{i:02d}" for i in range(1, 16)]
     # Minor: XOR
@@ -32,6 +49,7 @@ def generate_trace_seq_heavy():
     return trace
 
 def generate_trace_xor_heavy():
+    """Return one case dominated by a wide XOR choice, with minor SEQ/PAR/LOOP."""
     # Minor: Sequence
     trace = ["Act_01", "Act_02"]
     # Dominant: XOR (Massive branching choice)
@@ -49,6 +67,7 @@ def generate_trace_xor_heavy():
     return trace
 
 def generate_trace_loop_heavy():
+    """Return one case dominated by a large repeated LOOP body, with minor SEQ/XOR/PAR."""
     # Minor: Sequence
     trace = ["Act_01"]
     # Dominant: LOOP (Massive 14-activity sequence looping 4 to 8 times)
@@ -62,6 +81,7 @@ def generate_trace_loop_heavy():
     return trace
 
 def generate_trace_par_heavy():
+    """Return one case dominated by a wide PAR block, with minor SEQ/XOR/LOOP."""
     # Minor: Sequence
     trace = ["Act_01"]
     # Dominant: PAR (15 activities executing concurrently in random order)
@@ -79,11 +99,21 @@ def generate_trace_par_heavy():
     trace.append("Act_20")
     return trace
 
-# ==========================================
-# DATASET CREATION
-# ==========================================
 
 def create_dataset(generator_func, num_cases=1000):
+    """
+    Build a DataFrame event log by sampling a case generator many times.
+
+    Each case is assigned monotonically increasing synthetic timestamps (minutes
+    between activities, hours between cases).
+
+    Args:
+        generator_func: Zero-argument callable returning one case's activity list.
+        num_cases: Number of cases to generate.
+
+    Returns:
+        A DataFrame with ``Case ID`` / ``Activity`` / ``Timestamp`` columns.
+    """
     rows = []
     # Start all logs conceptually on Jan 1st
     current_time = datetime(2024, 1, 1, 8, 0, 0) 

@@ -1,23 +1,63 @@
 import pandas as pd
 from pathlib import Path
 import xml.etree.ElementTree as ET
-import gzip  # <-- 1. Added gzip import
+import gzip
 
 class LogBatchPreprocessor:
+    """
+    Batch-converts XES-family event logs into clean, uniform CSV files.
+
+    Parses each ``.xes`` / ``.xml`` / ``.mxml`` / ``.xes.gz`` log directly with
+    the standard library XML parser (namespace-agnostic), extracts case ids and
+    activity names, injects synthetic per-event timestamps, and writes a CSV with
+    the canonical ``case:concept:name`` / ``concept:name`` / ``time:timestamp``
+    columns.
+
+    Args:
+        input_dir: Directory scanned for input log files.
+        output_dir: Directory where converted CSVs are written.
+
+    Attributes:
+        input_dir: Path to the input directory.
+        output_dir: Path to the output directory.
+        valid_extensions: Set of recognized input file extensions.
+    """
     def __init__(self, input_dir: str, output_dir: str):
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)
-        # <-- 2. Added .xes.gz to valid extensions
         self.valid_extensions = {'.xes', '.xml', '.mxml', '.xes.gz'} 
 
     def _strip_namespace(self, tag: str) -> str:
-        """Removes the XML namespace (e.g., '{http://www.xes-standard.org/}trace' -> 'trace')"""
+        """
+        Strip the XML namespace prefix from a tag.
+
+        Args:
+            tag: A possibly namespaced tag (e.g.
+                ``'{http://www.xes-standard.org/}trace'``).
+
+        Returns:
+            The local tag name (e.g. ``'trace'``).
+        """
         return tag.split('}')[-1] if '}' in tag else tag
 
     def process_single_file(self, file_path: Path) -> bool:
+        """
+        Convert a single log file to CSV.
+
+        Parses the (optionally gzip-compressed) XML, walks its traces and events
+        to collect case ids and activity names with injected monotonic
+        timestamps, and writes the resulting DataFrame to a CSV in the output
+        directory. Any failure is caught and reported rather than raised.
+
+        Args:
+            file_path: Path to the log file to convert.
+
+        Returns:
+            ``True`` on success, ``False`` if processing failed.
+        """
         print(f"[*] Processing: {file_path.name}")
         try:
-            # <-- 3. Route to gzip.open if it's a compressed file
+            # Route to gzip.open if it's a compressed file
             if file_path.name.lower().endswith('.gz'):
                 with gzip.open(file_path, 'rb') as gz_file:
                     tree = ET.parse(gz_file)
@@ -80,13 +120,24 @@ class LogBatchPreprocessor:
             return False
 
     def run_batch(self):
+        """
+        Convert every supported log file in the input directory.
+
+        Creates the output directory, discovers all files with a recognized
+        extension, converts each via :meth:`process_single_file`, and prints a
+        summary of how many succeeded.
+
+        Returns:
+            None. Converted CSVs are written to ``output_dir`` and progress is
+            printed.
+        """
         if not self.input_dir.exists():
             print(f"[FATAL] Input directory does not exist: {self.input_dir.resolve()}")
             return
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        # <-- 4. Changed from f.suffix to f.name.lower().endswith() to catch .xes.gz
+        # Match on f.name.lower().endswith() rather than f.suffix so .xes.gz is caught
         files_to_process = [
             f for f in self.input_dir.iterdir() 
             if f.is_file() and any(f.name.lower().endswith(ext) for ext in self.valid_extensions)
@@ -111,9 +162,6 @@ class LogBatchPreprocessor:
 
 
 if __name__ == "__main__":
-    # ==========================================
-    # CONFIGURATION
-    # ==========================================
     
     INPUT_FOLDER = "data/csv/"
     OUTPUT_FOLDER = "data/csv/csv/"

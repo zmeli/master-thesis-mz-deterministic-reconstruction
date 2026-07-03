@@ -5,8 +5,16 @@ from pathlib import Path
 
 def get_letter_from_index(index):
     """
-    Converts a number into a letter (0->A, 1->B ... 25->Z, 26->AA, 27->AB).
-    Ensures we never run out of letters even if there are hundreds of unique events.
+    Convert a zero-based index into a spreadsheet-style letter code.
+
+    Maps ``0->A``, ``1->B`` … ``25->Z``, ``26->AA``, ``27->AB``, so an unbounded
+    number of unique activities can be labeled.
+
+    Args:
+        index: Zero-based position to encode.
+
+    Returns:
+        The corresponding letter code.
     """
     result = ""
     while index >= 0:
@@ -15,6 +23,23 @@ def get_letter_from_index(index):
     return result
 
 def convert_xes_to_mapped_csv(xml_file, output_csv, output_legend):
+    """
+    Convert an XES/XML log to a CSV with activities anonymized to letters.
+
+    Parses the (optionally gzip-compressed) log, replaces each distinct activity
+    name with a short letter code (in first-seen order), writes the case /
+    activity / timestamp rows -- sorted per case by timestamp -- to a CSV, and
+    saves a legend mapping each letter back to its original activity name.
+
+    Args:
+        xml_file: Path to the input XES/XML log (``.gz`` supported).
+        output_csv: Path of the mapped CSV to write.
+        output_legend: Path of the letter-to-activity legend file to write.
+
+    Returns:
+        None. The CSV and legend are written and progress is printed. Parsing
+        errors are caught and reported instead of raised.
+    """
     print(f"[*] Parsing compressed XML: {xml_file}...")
     
     try:
@@ -90,16 +115,11 @@ def convert_xes_to_mapped_csv(xml_file, output_csv, output_legend):
 
 
 if __name__ == "__main__":
-    # ==========================================
-    # CONFIGURATION
-    # ==========================================
     
     INPUT_GZ_FILE = "data/BPIC2021/Training Logs/pdc2021_0000000.xes" 
     
     # Where to save the generated files
     OUTPUT_CSV = "data/csv/csv/xes.csv"
     OUTPUT_LEGEND = "data/csv/csv/xes"
-    
-    # ==========================================
     
     convert_xes_to_mapped_csv(INPUT_GZ_FILE, OUTPUT_CSV, OUTPUT_LEGEND)

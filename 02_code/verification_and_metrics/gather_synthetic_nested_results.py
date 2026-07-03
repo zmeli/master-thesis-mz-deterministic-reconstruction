@@ -1,6 +1,6 @@
 """
-Gathers results for the thesis's "Evaluating Synthetic Nested Structures" section
-(Chapter 5): parses every audit_*.md report already generated for the synthetic
+Gathers results for the Evaluating Synthetic Nested Structures stage: parses every
+audit_*.md report already generated for the synthetic
 stress-test datasets (output/stress_tests/audit, output/InterleaveData/audit) and
 produces one summary table, sorted by Precision, to support the claim that the
 Ghost Trace phenomenon (engine-predicted patterns absent from the raw log) correlates
@@ -72,7 +72,7 @@ def main():
     with out_md.open("w", encoding="utf-8") as f:
         f.write("# Synthetic Nested Structures: Precision vs. Ghost Trace Summary\n\n")
         f.write("Sorted by ascending PM4Py Precision, to support the underfitting/Ghost Trace "
-                "correlation claim in Section 5.4. Re-run `gather_synthetic_nested_results.py` "
+                "correlation claim. Re-run `gather_synthetic_nested_results.py` "
                 "after auditing new synthetic datasets.\n\n")
         f.write("| " + " | ".join(fieldnames) + " |\n")
         f.write("| " + " | ".join(":---" for _ in fieldnames) + " |\n")

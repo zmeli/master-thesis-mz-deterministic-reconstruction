@@ -4,8 +4,8 @@ is statistically linked to a model's control-flow operator distribution (SEQ/XOR
 
 Scans every audit_*.md report under output/BPIC2021_Verification (currently the only
 report set produced in the new format that carries both the per-operator counts and the
-Tree/Data Exposure KPIs -- see Section 5.2 of the thesis). Safe to re-run while the live
-verifier sweep is still writing new reports.
+Tree/Data Exposure KPIs). Safe to re-run while the live verifier sweep is still writing
+new reports.
 
 Produces:
   - output/BPIC2021_Verification/operator_exposure_correlation.csv  (per-file raw data)
@@ -30,7 +30,7 @@ FIELDS = {
     "XOR Operators": "XOR",
     "PAR Operators": "PAR",
     "LOOP Operators": "LOOP",
-    "Tree Exposure (Model-Forced % of N)": "TreeExposure",
+    "Tree Exposure (Strict, End-to-End % of N)": "TreeExposure",
     "Data Exposure (Confirmed % of Claimed Volume)": "DataExposure",
 }
 

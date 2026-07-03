@@ -24,7 +24,7 @@ OVERVIEW_FIELDS = {
     "Ghost Patterns": "Ghost",
     "Binarization Additions": "Binarization Additions",
     "Tau Operators Added": "Tau Operators Added",
-    "Tree Exposure (Model-Forced % of N)": "Tree Exposure %",
+    "Tree Exposure (Strict, End-to-End % of N)": "Tree Exposure %",
     "Data Exposure (Confirmed % of Claimed Volume)": "Data Exposure %",
 }
 

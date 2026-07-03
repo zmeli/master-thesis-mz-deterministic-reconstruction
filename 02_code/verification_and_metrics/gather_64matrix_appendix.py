@@ -1,7 +1,7 @@
-"""Generates the full, detailed 64-permutation appendix for Chapter 5's
-"Foundational System Verification" section: for every one of the 64
-structural permutations of 3-operator combinations, under all 3 frequency
-bias states (Balanced/Left/Right), this produces:
+"""Generates the full, detailed 64-permutation appendix for the Foundational
+System Verification stage: for every one of the 64 structural permutations of
+3-operator combinations, under all 3 frequency bias states (Balanced/Left/Right),
+this produces:
   - a structural PNG diagram of the tree (one per combination, saved into
     00_tex_files/Appendix/64_matrix/images/)
   - the tree's symbolic text representation with frequencies, per bias state
@@ -13,9 +13,8 @@ bias states (Balanced/Left/Right), this produces:
 
 Seeded (RANDOM_SEED=42) and using the same ROOT_N=500 as
 gather_foundational_verification_results.py, so this detailed appendix
-stays an exact, citable companion to the summary table already referenced
-in Chapter 5's prose (Table~\\ref{tab:appendix-64-matrix}) and to the
-"across all 192 runs..." finding stated there.
+stays an exact, citable companion to the Foundational System Verification
+summary table and to the "across all 192 runs..." finding.
 """
 import itertools
 import random
@@ -37,8 +36,8 @@ ROOT = Path(__file__).resolve().parent
 APPENDIX_DIR = ROOT / "00_tex_files" / "Appendix" / "64_matrix"
 IMAGE_DIR = APPENDIX_DIR / "images"
 OUT_TEX = APPENDIX_DIR / "64_matrix.tex"
-# Path as referenced from 00_tex_files/ (the root all \includegraphics calls in
-# this project resolve against, since no \graphicspath is configured in main.tex).
+# \includegraphics path prefix, given relative to the LaTeX build root the generated
+# appendix is included into (a relative prefix, not an absolute path).
 IMG_REL_PREFIX = "Appendix/64_matrix/images"
 
 OP_TEX = {'SEQ': r'\rightarrow', 'XOR': r'\times', 'PAR': r'\wedge', 'LOOP': r'\circlearrowleft'}
@@ -124,8 +123,8 @@ def main():
         r"\subsection*{Foundational System Verification: Full 64-Permutation Matrix}",
         r"\label{app:64-matrix-full}",
         "",
-        (r"This appendix gives the full detail behind the summary table referenced in "
-         r"Section~\ref{sec:foundational-verification} (Table~\ref{tab:appendix-64-matrix}): "
+        (r"This appendix gives the full detail behind the Foundational System Verification "
+         r"summary table: "
          rf"for every one of the {len(permutations)} structural permutations of 3-operator "
          r"combinations ($\{$SEQ, XOR, PAR, LOOP$\}^3$, balanced binary trees), under each of the "
          r"three frequency bias states (\textbf{Balanced}, \textbf{Left}, \textbf{Right}; "

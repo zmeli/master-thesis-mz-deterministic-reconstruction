@@ -6,8 +6,31 @@ from visualization.report_builder import ReportBuilder
 
 def analyze_and_report(target_path: str, report_dir: str, image_dir: str, show_fragments: bool = False, show_as: bool = False, noise_threshold: float = 0.0):
     """
-    Analyzes event logs and uses the ReportBuilder to generate a clean Markdown report.
-    Smartly detects whether target_path is a single file or a directory of files.
+    Analyze one or more event logs and write a Markdown report per file.
+
+    Detects whether ``target_path`` points at a single supported log file or a
+    directory to scan recursively, then for each file mines a process tree,
+    reconciles its frequencies, enumerates the forced traces, and renders a
+    Markdown report (with conformance metrics and diagrams) into ``report_dir``.
+    Errors on an individual file are captured into that file's report rather than
+    aborting the whole batch.
+
+    Args:
+        target_path: Path to a single event log or a directory of logs. Supported
+            extensions: ``.csv``, ``.xes``, ``.xml``, ``.mxml``, ``.gz``,
+            ``.xes.gz``.
+        report_dir: Directory where the Markdown reports are written (created if
+            missing).
+        image_dir: Directory where generated diagram images are written.
+        show_fragments: If ``True``, include partial (non-full) trace fragments
+            in the report.
+        show_as: If ``True``, include atomic-summary (abstracted) blocks in the
+            report.
+        noise_threshold: PM4Py inductive-miner noise threshold in ``[0.0, 1.0]``
+            controlling how aggressively infrequent behavior is filtered.
+
+    Returns:
+        None. Reports are written to disk and progress is printed to stdout.
     """
     path_obj = Path(target_path)
 
@@ -17,7 +40,7 @@ def analyze_and_report(target_path: str, report_dir: str, image_dir: str, show_f
     # 1. Initialize our Mathematical Engine and Presentation Engine
     analyzer = ProcessTreeAnalyzer()
     
-    # FIX: Pass the report directory so the builder can calculate relative image paths
+    # Pass the report directory so the builder can calculate relative image paths
     builder = ReportBuilder(image_dir=image_dir, report_dir=report_dir)
     
     # 2. Smart Path Detection (File vs Folder)
@@ -82,7 +105,7 @@ def analyze_and_report(target_path: str, report_dir: str, image_dir: str, show_f
                 print(f"    [~] 2. Engine calculating mathematical trace permutations (N={total_n})...")
                 forced_traces = analyzer.analyze_forced_traces(root_tree, total_n)
                 
-                # --- EXTRACT THE REGISTRY (NEW) ---
+                # Extract the registry
                 # We pull the dictionary copy immediately after analysis to ensure thread/loop safety.
                 extracted_registry = analyzer.nested_blocks_registry.copy()
                 
@@ -96,9 +119,9 @@ def analyze_and_report(target_path: str, report_dir: str, image_dir: str, show_f
                     show_fragments=show_fragments,
                     show_as=show_as,
                     nested_blocks_registry=extracted_registry,
-                    dataset_name=filepath.name,             # <--- NEW
-                    noise_threshold=noise_threshold,        # <--- NEW
-                    added_tau_count=analyzer.added_tau_count# <--- NEW
+                    dataset_name=filepath.name,              
+                    noise_threshold=noise_threshold,         
+                    added_tau_count=analyzer.added_tau_count
                 )
                 md_file.write(md_section)
                 print("    [+] Done!")

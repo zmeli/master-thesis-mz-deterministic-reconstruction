@@ -2,25 +2,47 @@ import graphviz
 import sys
 from core.tree_node import ProcessTreeNode
 
-# NEW: Import the extracted formatting logic
 from visualization.formatters import get_node_label
 
-'''
-Class: ProcessTreeVisualizer
-Description: 
-    Creates and renders visual PDF/PNG diagrams of process trees using the Graphviz library.
-'''
 class ProcessTreeVisualizer:
+    """
+    Renders a process tree as a PDF/PNG diagram using Graphviz.
+
+    Builds a Graphviz digraph from a :class:`ProcessTreeNode`, styling leaves and
+    operator nodes differently and optionally annotating each node with its
+    frequency.
+
+    Args:
+        root: The root node of the tree to visualize.
+        show_frequencies: If ``True``, annotate each node with its frequency.
+
+    Attributes:
+        root: The tree root being rendered.
+        show_frequencies: Whether frequency annotations are shown.
+        dot: The underlying Graphviz ``Digraph`` being assembled.
+    """
     def __init__(self, root: ProcessTreeNode, show_frequencies: bool = True):
         self.root = root
         self.show_frequencies = show_frequencies
         self.dot = graphviz.Digraph(comment='Process Tree')
-        # 'Segoe UI Symbol' (vs. plain 'Arial') covers the operator glyphs ∧ (PAR)
-        # and ↺ (LOOP); Arial lacks them and graphviz renders missing glyphs as boxes.
         self.dot.attr('node', shape='box', style='rounded,filled', fontname='Segoe UI Symbol')
         
     def render(self, filename='process_tree_output', format='pdf', view=False):
-        """Generates the tree nodes and edges, then saves to the specified format (PDF/PNG)."""
+        """
+        Build the diagram and write it to disk in the given format.
+
+        Populates the graph from the tree, then renders it. A missing Graphviz
+        executable or any other rendering failure is caught and reported as a
+        warning rather than raised, so batch runs are not interrupted.
+
+        Args:
+            filename: Output path without extension.
+            format: Output format (e.g. ``'pdf'`` or ``'png'``).
+            view: If ``True``, open the rendered file and print a confirmation.
+
+        Returns:
+            None. The diagram is written to ``filename.format`` (when successful).
+        """
         self._add_nodes_recursive(self.root)
         
         try:
@@ -40,9 +62,22 @@ class ProcessTreeVisualizer:
             print(f"\n[!] WARNING: Failed to render visualization due to: {e}\n")
 
     def _add_nodes_recursive(self, node: ProcessTreeNode):
+        """
+        Add ``node`` and its descendants (with edges) to the Graphviz graph.
+
+        Uses the node's object id as its graph id, colors and shapes it by type
+        (leaf vs operator), then recurses into each child, drawing a parent-child
+        edge for every one.
+
+        Args:
+            node: The subtree root to add to the graph.
+
+        Returns:
+            None. The graph is mutated in place.
+        """
         node_id = str(id(node))
         
-        # FIX: Call the pure function from formatters instead of the removed class method
+        # Call the pure function from formatters instead of the removed class method
         label = get_node_label(node, show_freq=self.show_frequencies)
         
         if node.operator == 'LEAF':

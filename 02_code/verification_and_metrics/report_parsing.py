@@ -4,8 +4,10 @@ audit_*.md reports.
 
 Previously, aggregate_pdc2021.py, operator_exposure_analysis.py, and
 big_table_fractional_exposure.py each independently reimplemented the same regex
-against the "Dataset & Audit Overview" markdown table. Consolidated here so a report
-format change only needs updating in one place.
+against the "Dataset & Audit Overview" markdown table. The matching/extraction logic is
+consolidated here; each caller still supplies its own list of label strings to look up,
+so a *label* rename in auto_verifier_v2.py's overview table must still be mirrored in
+every caller's field list, but the regex and parsing rules change in one place only.
 
 Targets the CURRENT table format (`**Label** | `value` |`). Does not match the older
 bold-colon report format (`**Label:** `value``) used before that format change.

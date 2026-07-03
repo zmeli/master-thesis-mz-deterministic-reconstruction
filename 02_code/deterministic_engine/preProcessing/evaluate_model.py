@@ -4,11 +4,25 @@ import pm4py
 import concurrent.futures
 
 def evaluate_noise_range(log_path: str, output_md: str, timeout_seconds: int = 60):
+    """
+    Sweep the Inductive Miner across noise thresholds and report the results.
+
+    Loads the event log once, then for each noise threshold from 0.0 to 1.0
+    (step 0.1) mines a process tree under a per-threshold timeout, computes
+    token-based fitness and precision, and appends the outcome (or a timeout /
+    error notice) to a Markdown report.
+
+    Args:
+        log_path: Path to the event log (CSV or XES).
+        output_md: Path of the Markdown report to write.
+        timeout_seconds: Maximum time allowed for mining at each threshold before
+            it is skipped as too unstructured.
+
+    Returns:
+        None. The report is written to ``output_md`` and progress is printed.
+    """
     print(f"[*] Starting Iterative Evaluation for: {log_path}")
     
-    # ==========================================
-    # 1. LOAD THE DATA ONCE
-    # ==========================================
     print("[*] Loading and formatting event log into memory (this may take a moment)...")
     if log_path.lower().endswith('.csv'):
         df = pd.read_csv(log_path, low_memory=False)
@@ -34,9 +48,7 @@ def evaluate_noise_range(log_path: str, output_md: str, timeout_seconds: int = 6
         "---"
     ]
 
-    # ==========================================
-    # 2. ITERATE FROM 0.0 TO 1.0
-    # ==========================================
+
     # Generates [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     thresholds = [i / 10.0 for i in range(11)]
 
@@ -85,9 +97,7 @@ def evaluate_noise_range(log_path: str, output_md: str, timeout_seconds: int = 6
             md_lines.append(f"> ❌ **Error during evaluation:** `{str(e)}`\n")
 
 
-    # ==========================================
-    # 3. SAVE THE FINAL REPORT
-    # ==========================================
+
     md_content = "\n".join(md_lines)
     with open(output_md, 'w', encoding='utf-8') as f:
         f.write(md_content)
@@ -95,9 +105,7 @@ def evaluate_noise_range(log_path: str, output_md: str, timeout_seconds: int = 6
     print(f"\n[+] Iteration complete! Full results saved to {output_md}")
 
 
-# ==========================================
-# Run the script
-# ==========================================
+
 if __name__ == "__main__":
     TARGET_LOG = "data/BPIC2017/simulated-log.xml" 
     OUTPUT_FILE = "BPIC17simulated_Threshold_Analysis.md"

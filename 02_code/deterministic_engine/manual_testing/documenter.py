@@ -16,11 +16,24 @@ class PermutationDocumenter:
         self.analyzer = ProcessTreeAnalyzer()
         self.operators = ['SEQ', 'XOR', 'PAR', 'LOOP']
         
-        # Exact labels matching the Testlauf document
-        # Exact labels matching the Testlauf document
         self.biases = {'Balanced': 'balanced', 'Left': 'left', 'Right': 'right'}
 
     def _build_blueprint_recursive(self, ops_iterator, current_level: int, max_level: int):
+        """
+        Build a nested blueprint tuple by consuming operators from an iterator.
+
+        Draws the next operator for this level and, until ``max_level`` is
+        reached, recurses to build a left and right subtree; at the deepest level
+        the operator's children are both ``'LEAF'``.
+
+        Args:
+            ops_iterator: Iterator yielding operator names in pre-order.
+            current_level: Depth of the node currently being built (1-based).
+            max_level: Maximum depth before children become leaves.
+
+        Returns:
+            A nested ``(op, left, right)`` blueprint tuple.
+        """
         op = next(ops_iterator)
         if current_level >= max_level:
             return (op, 'LEAF', 'LEAF')
@@ -33,6 +46,27 @@ class PermutationDocumenter:
         self, levels: int = 2, filepath: str = None, image_dir: str = None, 
         root_n: int = 500, max_sample: int = 64
     ):
+        """
+        Generate a Markdown report over operator permutations of a fixed depth.
+
+        Enumerates every operator combination for a tree of ``levels`` levels
+        (optionally down-sampling to ``max_sample``), and for each permutation
+        builds trees under Balanced/Left/Right frequency biases, runs the
+        analyzer, and writes a compact permutation section to the report file.
+
+        Args:
+            levels: Number of operator levels per generated tree.
+            filepath: Output Markdown path; defaults to an ``output/`` path
+                derived from ``levels`` when ``None``.
+            image_dir: Directory for generated diagrams; defaults similarly.
+            root_n: Root frequency assigned to each generated tree.
+            max_sample: Cap on the number of permutations tested; ``None`` or a
+                value above the total tests them all.
+
+        Returns:
+            None. The report is written to ``filepath`` and a success line is
+            printed.
+        """
         if filepath is None:
             filepath = f"output/audit_reports/Testlauf_L{levels}_Vollstaendig.md"
         if image_dir is None:

@@ -1,5 +1,5 @@
 """
-Fractional (partial-credit) companion to the binary Tree Exposure metric (Section 5.2.1).
+Fractional (partial-credit) companion to the binary Tree Exposure metric.
 
 Tree Exposure only credits a case if the engine pins down a single, root-spanning Full
 pattern for it. Any case that only gets a Prefix, a Suffix, or an Activity Set that the
@@ -34,8 +34,8 @@ Three variants:
            actual content than a 40%-relative-exposure file with 50 expected events per
            case (4 known events vs. 20). Mean answers "how many real activities does an
            attacker actually learn per case, on average" -- directly comparable across
-           files regardless of their structural complexity, and maps onto the thesis's
-           privacy-impact framing (Section 8.2) more directly than a relative percentage.
+           files regardless of their structural complexity, and maps onto the
+           privacy-impact framing more directly than a relative percentage.
            Bonus: needs no loop-iteration-length assumption at all (no expected_length_max
            /avg call), since it only sums the actual realized length of fragments the
            engine already found -- so it's immune to the loop-length-estimation ambiguity
@@ -113,11 +113,6 @@ def best_loop_extra(node: ProcessTreeNode, registry: dict) -> float:
         best = max(best, best_loop_extra(c, registry))
 
     if node.operator == 'LOOP' and node.frequency > 0:
-        # A LOOP with frequency<=0 is a structurally dead/unreachable branch: zero real
-        # cases pass through it. Its redo child can still carry a stale, pre-reconciliation
-        # frequency left over from the bottom-up pass (e.g. redo_freq=16427 on a frequency=0
-        # node, observed in practice) -- counting that would inflate the bound with a
-        # branch that contributes nothing to any actual case.
         do_node = node.children[0]
         redo_freq = node.children[1].frequency if len(node.children) > 1 else 0
         do_len = baseline_length(do_node, registry)
@@ -149,9 +144,6 @@ def expected_length_avg(node: ProcessTreeNode, registry: dict) -> float:
     if node.operator == 'LOOP':
         do_node = node.children[0]
         if node.frequency <= 0:
-            # Dead/unreachable branch: zero real cases pass through it, regardless of
-            # whatever stale frequency its redo child may still carry from before
-            # top-down reconciliation zeroed this branch out.
             return 0.0
         redo_freq = node.children[1].frequency if len(node.children) > 1 else 0
         do_len = expected_length_avg(do_node, registry)
@@ -188,9 +180,7 @@ def _sum_avg_loop_extras(node: ProcessTreeNode, registry: dict) -> float:
     if node.operator == 'LEAF':
         return 0.0
     if node.operator == 'LOOP' and node.frequency <= 0:
-        # Dead/unreachable branch (zero real cases): nothing beneath it is reachable
-        # either, so don't recurse into children and accumulate their possibly-stale
-        # frequencies -- the whole subtree contributes 0.
+
         return 0.0
     total = sum(_sum_avg_loop_extras(c, registry) for c in node.children)
     if node.operator == 'LOOP':
@@ -216,14 +206,7 @@ def pattern_length(node: ProcessTreeNode, registry: dict) -> float:
     if node.operator == 'LOOP':
         return expected_length_avg_additive(node, registry)
     if node.operator == 'XOR':
-        # Only one branch of a Choice ever actually executes per case -- unlike
-        # SEQ/PAR, where every child's length adds to the total because every
-        # child always happens. Summing both branches here would overstate an
-        # ambiguous [nested XOR_k] block's real content (Section 3.2's Overlap
-        # Formula remainder, core/analyzer.py RULE 2) by counting content from
-        # the branch that didn't happen in that case. Frequency-weighted average
-        # of the two branches' own lengths, matching the same XOR treatment
-        # already used by baseline_length()/expected_length_avg() above.
+
         f0 = node.children[0].frequency
         f1 = node.children[1].frequency
         total = f0 + f1
@@ -373,8 +356,8 @@ def absolute_exposure_volume(root_tree, final_state, registry) -> dict:
     events per case leaks far less actual content than one with 40% relative exposure
     and 50 expected events per case (4 known events vs. 20). This answers the
     complementary question directly: how many real activities does an attacker actually
-    learn per case, on average -- the number that maps onto the thesis's privacy-impact
-    framing (Section 8.2) more directly than a relative percentage does.
+    learn per case, on average -- the number that maps onto the privacy-impact
+    framing more directly than a relative percentage does.
 
     A side benefit: unlike Max/Avg, this needs no loop-iteration-length assumption at
     all (no expected_length_max/avg call) -- it only sums the actual realized length of
@@ -573,9 +556,7 @@ def local_strict_exposure(root_tree, final_state, registry, expected_len: float,
         return {"local_strict_pct": 0.0}
 
     def qualifies(n):
-        # max(min_length, 1.0): pure tau (pattern_length == 0) never qualifies
-        # regardless of min_length -- "no real content" is a structural floor,
-        # not a configurable threshold (see has_real_content's docstring).
+
         return is_globally_strict(n) and pattern_length(n, registry) >= max(min_length, 1.0)
 
     strict_full = [(n, f, t) for n, f, t in final_state["full"] if qualifies(n)]
@@ -602,10 +583,7 @@ def local_strict_exposure(root_tree, final_state, registry, expected_len: float,
         ]
         numerator += min(max(candidates), residual)
 
-    # Additional credit unique to this metric: deterministic sub-fragments that are
-    # only locally known, inside an opaque PAR/LOOP wrapper. These live exclusively
-    # in `all` (tagged "(in PAR_x)"/"(in LOOP_x)"), never in full/prefix/suffix, so
-    # there is no overlap with the credit already accumulated above.
+
     seen_internal = set()
     internal_credit = 0.0
     for n, f, t in final_state.get("all", []):

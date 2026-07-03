@@ -3,6 +3,7 @@ from core.batch_processor import analyze_and_report
 from manual_testing.documenter import PermutationDocumenter
 
 def run_permutation_tests():
+    """Run the synthetic operator-permutation test suite and write its report."""
     print("\n" + "="*60)
     print("### SYNTHETIC PERMUTATION TEST (3 Operators, 4 Leaves) ###")
     print("="*60)
@@ -25,10 +26,11 @@ def run_permutation_tests():
     )
 
 def baselineTest():
+    """Run the batch processor over the stress-test folder of synthetic logs."""
     print("\n" + "="*60)
     print("### BATCH PROCESSOR ENGINE ###")
     print("="*60)
-    
+
     # ==========================================
     # CONFIGURATION: Edit these variables as needed
     # ==========================================
@@ -62,14 +64,15 @@ def baselineTest():
 
 
 def main():
+    """Run the batch processor over a single configured BPIC event-log file."""
     print("\n" + "="*60)
     print("### BATCH PROCESSOR ENGINE ###")
     print("="*60)
-    
+
     # ==========================================
     # CONFIGURATION: Edit these variables as needed
     # ==========================================
-    TARGET_DATA_PATH = "data/BPIC2021/Training Logs/pdc2021_0000000.xes"     # Folder containing your CSV/XES files
+    TARGET_DATA_PATH = "data/BPIC2021/Training Logs/pdc2021_0000000.xes"     # Single CSV/XES log file (a folder is also accepted)
     REPORT_OUTPUT_DIR = "output/xesTest/"                 # Where the Markdown files will be saved
     IMAGE_OUTPUT_DIR = "output/batch_images/xesTest"    # Where the Graphviz PNGs will be saved
     

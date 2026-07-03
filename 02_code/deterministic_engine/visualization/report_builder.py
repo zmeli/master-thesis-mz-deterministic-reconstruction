@@ -7,6 +7,25 @@ from core.analyzer import ProcessTreeAnalyzer
 from visualization.formatters import get_flat_representation, is_sublist
 
 class ReportBuilder:
+    """
+    Assembles Markdown analysis reports (and their diagrams) from process trees.
+
+    Resolves the report and image directories to absolute paths on construction
+    and pre-computes the relative image path so generated Markdown links resolve
+    correctly. Offers builders for a document header, a full per-log analysis
+    section, and a compact permutation-test section.
+
+    Args:
+        image_dir: Directory for rendered diagram images. If ``None``, image
+            generation is disabled and only text is produced.
+        report_dir: Directory the Markdown reports are written to; used to compute
+            image links relative to the report location.
+
+    Attributes:
+        report_dir: Absolute path to the report output directory.
+        image_dir: Absolute path to the image directory, or ``None``.
+        rel_img_path: Image directory expressed relative to ``report_dir``.
+    """
     def __init__(self, image_dir: str = None, report_dir: str = "."):
         # Force paths to absolute to fix the Markdown relative linking bug
         self.report_dir = Path(report_dir).resolve()
@@ -25,6 +44,16 @@ class ReportBuilder:
             self.rel_img_path = ""
 
     def build_document_header(self, title: str, description: str = "") -> str:
+        """
+        Build the top-level Markdown header block for a report document.
+
+        Args:
+            title: The document title (rendered as an H1).
+            description: Optional descriptive paragraph placed under the title.
+
+        Returns:
+            The header as a Markdown string.
+        """
         md_lines = [f"# {title}\n"]
         if description:
             md_lines.append(f"{description}\n")
@@ -35,10 +64,37 @@ class ReportBuilder:
         self, section_id: str, title: str, root_tree: ProcessTreeNode, 
         forced_traces: List[Tuple[ProcessTreeNode, int, str]], total_n: int, 
         error_msg: str = None, show_fragments: bool = False, show_as: bool = True,
-        nested_blocks_registry: dict = None,  # NEW: Optional dictionary of registered blocks
+        nested_blocks_registry: dict = None,  # Optional dictionary of registered blocks
         dataset_name: str = "Unknown", noise_threshold: float = 0.0, added_tau_count: int = 0
     ) -> str:
-        """Standard Markdown generation for processing real event logs."""
+        """
+        Build the full Markdown analysis section for one processed event log.
+
+        Emits a topology/metrics overview table, the master tree diagram, a
+        de-duplicated table of forced traces (optionally filtering fragments and
+        atomic-summary blocks, and rendering per-trace subtree diagrams), and a
+        reference section describing any abstracted nested blocks. On error, emits
+        a short failure notice instead.
+
+        Args:
+            section_id: Unique identifier used to name generated image files.
+            title: Section heading text.
+            root_tree: The reconciled process tree to report on.
+            forced_traces: List of ``(node, frequency, type)`` forced traces.
+            total_n: Log size (root token count).
+            error_msg: If set, render this failure message and skip the analysis.
+            show_fragments: If ``True``, keep strict traces that are sub-paths of
+                larger ones instead of filtering them out.
+            show_as: If ``True``, include atomic-summary (``AS``) rows.
+            nested_blocks_registry: Mapping of block id to the subtree it
+                abstracts, used to build the reference section.
+            dataset_name: Human-readable dataset name for the overview table.
+            noise_threshold: Miner noise threshold to display.
+            added_tau_count: Number of injected tau branches to display.
+
+        Returns:
+            The section as a Markdown string.
+        """
         md_lines = [f"## {title}"]
         
         if error_msg:
@@ -141,7 +197,7 @@ class ReportBuilder:
                     md_lines.append(f"| `[{t_type}]` | {freq} | {md_trace} | {diagram_cell} |")
                     seen.add(clean_trace)
                     
-# --- NEW: Append Nested Blocks Reference Section ---
+
         if nested_blocks_registry:
             md_lines.append("### Nested Structures Reference")
             md_lines.append("The following complex blocks were abstracted to simplify the main trace table:\n")
@@ -185,7 +241,24 @@ class ReportBuilder:
 
     def build_compact_permutation_section(self, section_idx: int, ops_str: str, ops_filename: str, results: list, master_tree=None) -> str:
         """
-        Builds the custom Markdown format for the Level 2 Testlauf report.
+        Build the compact Markdown section for one operator-permutation test.
+
+        Renders the structural blueprint diagram (if available) and a table that
+        groups, per frequency bias, the generated tree and its de-duplicated
+        forced traces, or an error/empty notice where applicable.
+
+        Args:
+            section_idx: 1-based index of this permutation (used in the heading
+                and image filename).
+            ops_str: Human-readable operator list for the heading.
+            ops_filename: Sanitized operator list used in image filenames.
+            results: Per-bias result dicts with keys ``bias``, ``tree_str``,
+                ``error``, and ``traces``.
+            master_tree: Representative tree to render as the blueprint diagram,
+                or ``None`` to skip it.
+
+        Returns:
+            The section as a Markdown string.
         """
         md_lines = [f"### {section_idx}. Blueprint Operators: `{ops_str}`\n"]
 

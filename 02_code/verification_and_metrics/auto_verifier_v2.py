@@ -15,33 +15,64 @@ from fractional_exposure import (
 )
 
 class LogTraceVerifier:
+    """
+    Audits a mined process tree against the raw event log that produced it.
+
+    For a given log, mines and assimilates the tree via the Deterministic Engine,
+    enumerates the forced traces, and checks each predicted pattern against the
+    real cases -- classifying every pattern as Verified, Discrepancy, Ghost, or
+    Skipped -- while accumulating the exposure/coverage KPIs. Results are
+    written as a Markdown audit report.
+
+    Args:
+        allow_interleaving: If ``True``, project each case onto a pattern's own
+            alphabet before matching, so unrelated interleaved activities do not
+            break an otherwise-present pattern.
+        ignore_par_order: If ``True``, treat PAR-internal patterns as unordered
+            (multiset) co-occurrences rather than requiring a fixed order.
+        compute_fitness_precision: If ``False``, skip PM4Py's token-based
+            fitness/precision replay (the slowest step); the values are read back
+            from an existing report instead.
+
+    Attributes:
+        analyzer: The :class:`ProcessTreeAnalyzer` used for assimilation/analysis.
+        tau_names: Names treated as silent (tau) leaves.
+    """
     def __init__(self, allow_interleaving: bool = True, ignore_par_order: bool = True, compute_fitness_precision: bool = True):
         self.analyzer = ProcessTreeAnalyzer(max_traces_per_node=10000)
         self.tau_names = {"τ", "tau", "empty_tau", "none"}
 
         self.allow_interleaving = allow_interleaving
         self.ignore_par_order = ignore_par_order
-        # Toggle for DataAssimilation's slow PM4Py Fitness/Precision token-based replay
-        # (the bottleneck observed at ~240s/file vs. ~4s/file without it). Skipping it
-        # has no effect on the Deterministic Engine, Trace Verifier, or Tree/Data/
-        # fractional exposure metrics -- only the Fitness/Precision report fields
-        # change, to "N/A (skipped)". Set False for bulk recalculation runs where those
-        # two numbers can be sourced from an already-existing report instead.
         self.compute_fitness_precision = compute_fitness_precision
 
     def _load_raw_log(self, file_path: str) -> Dict[str, List[str]]:
+        """
+        Load the raw ordered activity sequence for every case in a log.
+
+        Reads CSV via pandas or XES-family logs natively (kept as a PM4Py log
+        object rather than a DataFrame), then groups events into per-case
+        activity lists, tolerating non-standard case/activity column names.
+
+        Args:
+            file_path: Path to the event log (CSV or XES-family).
+
+        Returns:
+            A mapping of case id to its ordered list of activity names.
+
+        Raises:
+            ValueError: If the file extension is unsupported.
+        """
         path_obj = Path(file_path)
         raw_cases = {}
 
-        # ---> REPLACE THIS LOADING BLOCK <---
         if path_obj.suffix.lower() == '.csv':
             data = pd.read_csv(file_path, sep=None, engine='python')
         elif path_obj.suffix.lower() in ['.xes', '.xml', '.mxml', '.gz']:
-            # Read natively and DO NOT convert to dataframe
+            # Read natively and keep the PM4Py log object (do not convert to a DataFrame)
             data = pm_lib.read_xes(file_path)
         else:
             raise ValueError(f"Unsupported file extension: {path_obj.suffix}")
-        # ------------------------------------
 
         if isinstance(data, pd.DataFrame):
             case_candidates = ['case:concept:name', 'case id', 'case_id', 'case', 'id']
@@ -63,18 +94,39 @@ class LogTraceVerifier:
         return raw_cases
 
     def _get_model_alphabet(self, node) -> Set[str]:
+        """
+        Collect the set of real (non-tau) activity names in a subtree.
+
+        Unlike :meth:`_get_leaves`, this does not exclude ``[nested ...]``
+        placeholder names, so it reflects every directly-named activity.
+
+        Args:
+            node: The subtree root to scan.
+
+        Returns:
+            The set of non-tau leaf names found.
+        """
         if node.operator == 'LEAF':
             name = str(node.name).strip()
             if name.lower() not in self.tau_names:
                 return {name}
             return set()
-        
+
         alphabet = set()
         for child in node.children:
             alphabet.update(self._get_model_alphabet(child))
         return alphabet
 
     def _compute_block_alphabets(self, registry: dict) -> Dict[str, Set[str]]:
+        """
+        Map each registered nested block to the set of real leaves it contains.
+
+        Args:
+            registry: The engine's ``nested_blocks_registry`` (block id -> subtree).
+
+        Returns:
+            A mapping of ``"[nested X]"`` token to its leaf-activity alphabet.
+        """
         alphabets = {}
         for block_id, node in registry.items():
             alphabets[f"[{block_id}]"] = self._get_leaves(node)
@@ -138,6 +190,18 @@ class LogTraceVerifier:
         return new_idx if new_idx > idx else None
 
     def _get_leaves(self, node) -> Set[str]:
+        """
+        Collect the real, directly-named leaf activities of a subtree.
+
+        Excludes both tau leaves and ``[nested ...]`` placeholder leaves, so the
+        result is the block's own concrete alphabet.
+
+        Args:
+            node: The subtree root to scan.
+
+        Returns:
+            The set of concrete leaf-activity names.
+        """
         if node.operator == 'LEAF':
             name = str(node.name).strip()
             if name.lower() in self.tau_names or "nested" in name:
@@ -149,6 +213,19 @@ class LogTraceVerifier:
         return leaves
 
     def _interleave_sequences(self, sequences: List[List[str]]) -> List[List[str]]:
+        """
+        Enumerate every order-preserving interleaving of several sequences.
+
+        Each input sequence keeps its own internal order, but the sequences are
+        merged in all possible ways (used to model unordered PAR execution).
+        Duplicate interleavings are collapsed.
+
+        Args:
+            sequences: The sequences to interleave.
+
+        Returns:
+            A list of the distinct interleaved sequences.
+        """
         active_seqs = [s for s in sequences if s]
         if not active_seqs: return [[]]
         if len(active_seqs) == 1: return [active_seqs[0]]
@@ -164,6 +241,22 @@ class LogTraceVerifier:
         return [list(x) for x in set(tuple(x) for x in result)]
 
     def _generate_valid_patterns(self, node) -> List[List[str]]:
+        """
+        Enumerate the valid token sequences a subtree can produce.
+
+        Recursively expands operators into their possible orderings: SEQ
+        concatenates, XOR unions, PAR interleaves, and LOOP unrolls up to its redo
+        frequency. ``[nested ...]`` placeholders are kept as single tokens. To
+        bound cost, any expansion exceeding the internal permutation caps collapses
+        to the sentinel ``[["COMPLEX"]]`` (the Atomic Fallback).
+
+        Args:
+            node: The subtree root to enumerate.
+
+        Returns:
+            A list of token-sequence patterns, or ``[["COMPLEX"]]`` if the pattern
+            space is too large to enumerate.
+        """
         MAX_PERMS = 1000
         if node.operator == 'LEAF':
             name = str(node.name).strip()
@@ -171,7 +264,7 @@ class LogTraceVerifier:
             if name.startswith("[nested"): return [[name]]
             return [[name]]
 
-        # --- FIX: Gracefully handle artificially wrapped single-child operators ---
+        # Gracefully handle artificially wrapped single-child operators
         if not node.children:
             return [[]]
         if len(node.children) == 1:
@@ -224,8 +317,7 @@ class LogTraceVerifier:
             res = [list(x) for x in set(tuple(x) for x in res)]
             return res if len(res) <= MAX_PERMS else [["COMPLEX"]]
 
-    # --- UPDATED: The Fragment Matcher (For Micro/Internal Traces) ---
-    # --- UPDATED: The Fragment Matcher (For Micro/Internal Traces) ---
+
     @staticmethod
     def _mark_covered(coverage_masks, index_map, case_id: str, positions: range, tier: int) -> None:
         """Marks the given filtered-trace `positions` as covered at `tier`, translating
@@ -267,7 +359,7 @@ class LogTraceVerifier:
                 for perm in valid_perms_set:
                     req_counts = Counter()
                     
-                    # --- MATH FIX: Unpack nested block alphabets so we can count them ---
+                    # Unpack nested block alphabets so we can count them
                     for token in perm:
                         if token.startswith("[nested"):
                             allowed_alphabet = block_alphabets.get(token, set())
@@ -281,11 +373,6 @@ class LogTraceVerifier:
                         match_count += possible_matches
                         observed_variations.add(perm)
                         if coverage_masks is not None:
-                            # No explicit positions are tracked by the Counter-based
-                            # arithmetic above, so credit the earliest not-yet-covered
-                            # occurrences of each required activity -- deterministic,
-                            # and naturally avoids re-crediting a position already
-                            # claimed by an earlier (possibly higher-tier) pattern.
                             mask = coverage_masks.get(case_id)
                             idxs = index_map.get(case_id) if index_map else None
                             if mask is not None:
@@ -313,12 +400,6 @@ class LogTraceVerifier:
                         while gen_idx < len(perm) and log_idx < len(log_trace):
                             token = perm[gen_idx]
                             if token.startswith("[nested"):
-                                # Consume exactly ONE instance of this block (not a greedy
-                                # maximal alphabet run) -- see _match_one_block_instance.
-                                # This is what lets the outer `while i < len(log_trace)`
-                                # loop pick up a second, third, ... back-to-back repetition
-                                # of the same block as separate matches, instead of having
-                                # them all silently absorbed into a single counted match.
                                 new_log_idx = self._match_one_block_instance(
                                     token, log_trace, log_idx, block_alphabets, block_patterns or {}
                                 )
@@ -341,15 +422,33 @@ class LogTraceVerifier:
                             match_count += 1
                             observed_variations.add(perm)
                             self._mark_covered(coverage_masks, index_map, case_id, range(i, log_idx), tier)
-                            i = log_idx # Jump forward, preventing overlapping overlaps
+                            i = log_idx # Jump forward, preventing overlapping matches
                         else:
                             i += 1
 
         return match_count, len(observed_variations)
 
-    # --- KEEP: The Hierarchical Matcher (For Macro/End-to-End Traces) ---
+    # The hierarchical matcher, used for macro / end-to-end traces.
     def _count_hierarchical_matches(self, valid_permutations: List[List[str]], clean_cases: Dict[str, List[str]], block_alphabets: Dict[str, Set[str]],
                                      coverage_masks=None, index_map=None, tier: int = 0) -> Tuple[int, int]:
+        """
+        Count cases matched end-to-end by any of the given macro patterns.
+
+        A case counts once if some pattern consumes its entire (cleaned) trace
+        exactly (see :meth:`_is_hierarchical_match`); matched positions are marked
+        in the coverage masks at ``tier``.
+
+        Args:
+            valid_permutations: Candidate full-trace token patterns.
+            clean_cases: Case id -> alphabet-filtered activity list.
+            block_alphabets: ``[nested X]`` token -> its allowed alphabet.
+            coverage_masks: Optional per-case tier masks to update.
+            index_map: Optional filtered->original index mapping per case.
+            tier: Coverage tier to record for matched positions.
+
+        Returns:
+            A ``(match_count, distinct_patterns_observed)`` tuple.
+        """
         if not valid_permutations or valid_permutations == [["COMPLEX"]]:
             return 0, 0
 
@@ -363,7 +462,7 @@ class LogTraceVerifier:
                     match_count += 1
                     observed_variations.add(perm)
                     # A hierarchical match requires consuming the ENTIRE trace exactly
-                    # (Section 4.6.2's macro consumer), so the whole filtered view --
+                    # (the macro consumer), so the whole filtered view --
                     # i.e. every position this pattern's alphabet projection retained --
                     # is what gets credited as covered, not just part of it.
                     self._mark_covered(coverage_masks, index_map, case_id, range(len(log_trace)), tier)
@@ -371,6 +470,22 @@ class LogTraceVerifier:
         return match_count, len(observed_variations)
 
     def _is_hierarchical_match(self, expected_tokens: List[str], log_trace: List[str], block_alphabets: Dict[str, Set[str]]) -> bool:
+        """
+        Check whether a token pattern consumes an entire case trace exactly.
+
+        Walks ``expected_tokens`` against ``log_trace``: a plain token must match
+        the next activity, while a ``[nested X]`` token greedily consumes a run of
+        activities from its block alphabet. Succeeds only if both the pattern and
+        the trace are fully consumed.
+
+        Args:
+            expected_tokens: The macro pattern to match.
+            log_trace: The case's (cleaned) activity list.
+            block_alphabets: ``[nested X]`` token -> its allowed alphabet.
+
+        Returns:
+            ``True`` if the pattern matches the whole trace exactly.
+        """
         log_idx = 0
         gen_idx = 0
         while gen_idx < len(expected_tokens) and log_idx < len(log_trace):
@@ -391,6 +506,24 @@ class LogTraceVerifier:
         return gen_idx == len(expected_tokens) and log_idx == len(log_trace)
 
     def verify_and_report(self, input_file: str, output_md_path: str, noise_threshold: float = 0.0):
+        """
+        Audit one log against its mined tree and write a Markdown report.
+
+        Mines the original PM4Py tree, assimilates it into the Deterministic
+        Engine's binary form, enumerates the forced traces, and checks each
+        auditable pattern against the raw cases -- tallying Verified / Discrepancy
+        / Ghost / Skipped outcomes and computing the tree-exposure, data-exposure,
+        and data-coverage KPIs -- then writes an overview table, per-pattern audit
+        table, and nested-block reference to ``output_md_path`` (with diagrams).
+
+        Args:
+            input_file: Path to the event log to audit.
+            output_md_path: Path of the Markdown audit report to write.
+            noise_threshold: Inductive-miner noise threshold used when mining.
+
+        Returns:
+            None. The report and its images are written to disk.
+        """
         print(f"[*] Starting Audit for: {input_file} (Noise: {noise_threshold})")
         raw_cases = self._load_raw_log(input_file)
         total_cases = len(raw_cases)
@@ -436,23 +569,10 @@ class LogTraceVerifier:
 
         model_alphabet = self._get_model_alphabet(root_tree)
         clean_cases = {cid: [a for a in acts if a in model_alphabet] for cid, acts in raw_cases.items()}
-        # --- METRIC 3 (Data Coverage, ST-only / ST + ST-in-PAR / Total) accumulators ---
-        # Data Exposure asks "of what the engine claims, how much does the log confirm" --
-        # a precision-style question. Coverage asks the complementary recall-style question:
-        # "of everything actually in the log, how much do VERIFIED patterns explain." Gated
-        # strictly on VERIFIED status (never Discrepancy/Ghost) to keep the "how much is
-        # proven with 100% certainty" framing honest -- a partial real match underneath an
-        # unconfirmed claim doesn't count as proven. Tiers mirror Data Exposure's: 1 = ST-only
-        # (macro, globally strict), 2 = additionally ST-in-PAR (globally strict, PAR-internal),
-        # 3 = Total (anything else verified, i.e. AS-tagged or LOOP-internal). Each position is
-        # tracked once per case at its highest-qualifying tier, so the three percentages are
-        # cumulative (ST-only <= ST+PAR <= Total) by construction, never double-counted across
-        # overlapping patterns.
         coverage_total_events = sum(len(acts) for acts in clean_cases.values())
         coverage_masks = {cid: [0] * len(acts) for cid, acts in clean_cases.items()}
         auditable_traces = [t for t in engine_traces if t[2].startswith("ST") or t[2].startswith("AS")]
 
-        # ------------------- [WITH THIS] -------------------
         # --- 1. Gather pre-verification Statistics ---
         stats = self.analyzer.get_tree_stats(root_tree)
         binarization_ops = getattr(root_tree, 'binarization_additions', 'N/A')
@@ -461,24 +581,6 @@ class LogTraceVerifier:
         nested_pars = sum(1 for n in extracted_registry.values() if n.operator == 'PAR')
         total_patterns_found = len(auditable_traces)
 
-        # --- EXPOSED VS. HIDDEN: METRIC 1 (Model-side "Tree Exposure") ---
-        # Of the tree's own total case volume N (root_tree.frequency), what fraction
-        # is pinned down by a non-redundant macro-level forced pattern? `last_root_full`
-        # (unlike the public "all" list) never mixes in Prefix/Suffix fragments of an
-        # already-counted Full chain, so summing it gives a genuine partition of N
-        # rather than double-counting overlapping facts about the same cases.
-        # Normalized against root_tree.frequency (not the raw case count) since that
-        # is the N the engine actually used internally to compute these frequencies.
-        #
-        # NOTE: "Tree Exposure" used to credit this entire bucket regardless of content
-        # -- but a `full`-bucket entry can be tagged "ST" by the SEQ rule even when it
-        # contains an embedded "[nested PAR_x]"/"[nested LOOP_x]" placeholder (the SEQ
-        # cross-multiply rule hardcodes merged-chain type to "ST" regardless of its
-        # components -- confirmed empirically on test_20_loopDouble). So Tree Exposure
-        # is now redefined as the STRICT, order-only number (classify_full_bucket's
-        # st_volume): the fraction of N for which the entire case, end-to-end, is one
-        # genuinely known order with zero unresolved islands anywhere in the chain.
-        # The old (loose) number is preserved exactly, renamed "Total Forced Volume".
         root_n = root_tree.frequency
         bucket_classification = classify_full_bucket(getattr(self.analyzer, 'last_root_full', []), extracted_registry)
         st_volume = bucket_classification["st_volume"]
@@ -491,21 +593,12 @@ class LogTraceVerifier:
         tree_exposure_pct = (st_volume / root_n * 100) if root_n > 0 else 0.0
         total_forced_volume_pct = (total_forced_volume / root_n * 100) if root_n > 0 else 0.0
         as_resolved_pct = (as_resolved_volume / root_n * 100) if root_n > 0 else 0.0
-        # --- METRIC 1e (AS-Resolved, split by referenced block operator) ---
-        # A resolved PAR's open question is "which interleaving order" -- an unordered
-        # co-occurrence guarantee between activities, structurally different from a
-        # resolved LOOP's open question ("how many redo iterations", a count). Split
-        # so "how much ST-in-PAR co-occurrence was found" can be read directly,
-        # without LOOP's redo-count ambiguity mixed in.
+
         as_resolved_par_pct = (as_resolved_par_volume / root_n * 100) if root_n > 0 else 0.0
         as_resolved_loop_pct = (as_resolved_loop_volume / root_n * 100) if root_n > 0 else 0.0
         as_opaque_pct = (as_opaque_volume / root_n * 100) if root_n > 0 else 0.0
 
-        # --- EXPOSED VS. HIDDEN: METRIC 1b (Fractional Exposure: Max/Avg/Mean) ---
-        # Tree Exposure is binary at the case level (Full chain or nothing); these three
-        # variants credit Prefix/Suffix-only fragments that Tree Exposure discards.
-        # See fractional_exposure.py module docstring for the full rationale, and
-        # Section "Quantifying Exposure" in the thesis for what each variant tells us.
+
         last_root_state = getattr(self.analyzer, 'last_root_state', None)
         if last_root_state is not None and root_n > 0:
             max_len = expected_length_max(root_tree, extracted_registry)
@@ -516,25 +609,11 @@ class LogTraceVerifier:
             max_exposure_pct = max_result["fractional_pct"]
             avg_exposure_pct = avg_result["fractional_pct"]
             mean_events_per_case = mean_result["events_per_case"]
-            # --- METRIC 1c (Tree Exposure, Fragment-Level Strict) ---
-            # Generalizes the strict, zero-opacity standard down to the fragment
-            # level: credits any globally-strict (PAR/LOOP-free) fragment found
-            # anywhere in the tree -- including internally-tagged "(in PAR_x)" ST
-            # sub-fragments the engine already derives but End-to-End/Total Forced
-            # Volume both discard whenever they sit inside a non-strict parent block.
+
             fragment_strict_pct = fragment_strict_exposure(root_tree, last_root_state, extracted_registry, avg_len)["fragment_strict_pct"]
-            # --- METRIC 1c-2 (Tree Exposure, Fragment-Level Strict, >=2 activities) ---
-            # Same candidate set as Fragment-Level, but drops single-leaf (length-1)
-            # fragments -- a lone activity has no internal order to demonstrate, so
-            # crediting it overstates the "fixed order, no part up for interpretation"
-            # claim this metric is meant to license.
+
             fragment_strict_min2_pct = fragment_strict_exposure(root_tree, last_root_state, extracted_registry, avg_len, min_length=2.0)["fragment_strict_pct"]
-            # --- METRIC 1d (Tree Exposure, Local-Strict[, >=2 activities]) ---
-            # Generalizes Fragment-Level one step further: also credits individually
-            # globally-strict sub-fragments found INSIDE an opaque PAR/LOOP block (the
-            # "(in PAR_x)"/"(in LOOP_x)" tagged entries Fragment-Level deliberately
-            # excludes). See local_strict_exposure's docstring for the required caveat
-            # -- this can read near 100% even on a 0% End-to-End / fully AS-Opaque case.
+
             local_strict_pct = local_strict_exposure(root_tree, last_root_state, extracted_registry, avg_len, min_length=0.0)["local_strict_pct"]
             local_strict_min2_pct = local_strict_exposure(root_tree, last_root_state, extracted_registry, avg_len, min_length=2.0)["local_strict_pct"]
         else:
@@ -558,20 +637,10 @@ class LogTraceVerifier:
         verified_rows, discrepancy_rows, ghost_rows, skipped_rows = [], [], [], []
         seen_patterns = set()
 
-        # --- EXPOSED VS. HIDDEN: METRIC 2 (Data-side "Confirmation Rate") accumulators ---
-        # Skipped (COMPLEX) patterns are excluded: they were never actually evaluated
-        # against the log, so they carry no information about confirmation either way.
+
         total_expected_volume = 0
         total_confirmed_volume = 0
-        # --- METRIC 2b/2c (Data Exposure, ST-only / ST + ST-in-PAR) ---
-        # Same confirmation-rate mechanism as Metric 2, but restricted to genuinely
-        # globally-strict patterns (checked structurally via is_globally_strict, not
-        # by trusting the engine's own t_type tag -- the SEQ rule can mislabel a chain
-        # "ST" even when it still embeds a nested placeholder). ST-only answers "how
-        # much of the real log does strict, order-known content confirm"; ST + ST-in-PAR
-        # additionally folds in individually-deterministic "(in PAR_x)"-tagged internal
-        # fragments (excluding "(in LOOP_x)" ones, which carry a redo-count ambiguity
-        # rather than a pure order guarantee).
+
         total_expected_st = 0
         total_confirmed_st = 0
         total_expected_st_par = 0
@@ -581,7 +650,7 @@ class LogTraceVerifier:
             valid_permutations = self._generate_valid_patterns(node)
             md_trace = get_flat_representation(node).replace('|', '&#124;')
 
-            # --- MATH FIX APPLIED HERE ---
+            # Classify the trace's structural context (block-internal vs macro, PAR handling).
             is_internal = "(in " in t_type
             is_par_internal = "(in PAR" in t_type and self.ignore_par_order
             tagged_in_par = "(in PAR" in t_type
@@ -599,18 +668,6 @@ class LogTraceVerifier:
                 skipped_traces += 1
                 continue
 
-            # A pattern that reduces to pure tau (no real tokens at all) represents
-            # "this many cases took a branch that produces no observable event" --
-            # e.g. the placeholder the XOR rule injects so a silent branch's case
-            # volume survives bookkeeping instead of vanishing (core/analyzer.py,
-            # RULE 2: XOR; see output/BUG_tau_xor_dissolution.md). It conveys zero
-            # reconstructable content -- there is nothing here for an attacker to
-            # learn, and nothing in the raw log could ever falsify or confirm a
-            # claim of "nothing happened" (tau is never recorded). Excluded
-            # entirely rather than auto-verified: no table row (it would only
-            # confuse a reader looking for identified traces -- tau still shows up
-            # in the tree diagrams, just not here), no credit toward any KPI
-            # (Data Exposure's variants, or Total Found Patterns).
             if valid_permutations == [[]]:
                 total_patterns_found -= 1
                 continue
@@ -638,8 +695,7 @@ class LogTraceVerifier:
                 target_cases = clean_cases
                 index_map = {cid: list(range(len(acts))) for cid, acts in clean_cases.items()}
 
-            # Coverage tier this pattern would qualify for if VERIFIED -- mirrors the
-            # ST-only / ST+ST-in-PAR / Total classification used for Data Exposure above.
+
             if node_is_strict and not is_internal:
                 coverage_tier = 1
             elif node_is_strict and tagged_in_par:
@@ -648,9 +704,9 @@ class LogTraceVerifier:
                 coverage_tier = 3
             temp_coverage = {cid: [0] * len(acts) for cid, acts in clean_cases.items()}
 
-            # --- DYNAMIC CONSUMER ROUTING APPLIED HERE ---
+            # Route to the matching consumer based on whether the trace is block-internal.
             if is_internal:
-                # Use the new sliding fragment scanner
+                # Use the sliding fragment scanner
                 actual_count, observed_vars = self._count_fragment_matches(
                     valid_permutations, target_cases, is_par_internal, block_alphabets, block_patterns,
                     coverage_masks=temp_coverage, index_map=index_map, tier=coverage_tier
@@ -664,12 +720,12 @@ class LogTraceVerifier:
 
             var_str = f"({observed_vars} permutations)" if observed_vars > 1 else "Exact Token Match"
 
-            # --- EXPOSED VS. HIDDEN: METRIC 2 accumulation (capped at expected_freq so a) ---
-            # surplus matches beyond the guaranteed minimum don't inflate the confirmation rate
+            # --- EXPOSED VS. HIDDEN: METRIC 2 accumulation ---
+            # Confirmed volume is capped at expected_freq so that surplus matches beyond
+            # the guaranteed minimum don't inflate the confirmation rate.
             total_expected_volume += expected_freq
             total_confirmed_volume += min(actual_count, expected_freq)
 
-            # --- METRIC 2b/2c accumulation ---
             if node_is_strict and not is_internal:
                 total_expected_st += expected_freq
                 total_confirmed_st += min(actual_count, expected_freq)
@@ -677,7 +733,7 @@ class LogTraceVerifier:
                 total_expected_st_par += expected_freq
                 total_confirmed_st_par += min(actual_count, expected_freq)
 
-            # --- FIX: Evaluate as a Minimum Bound, not an Exact Match ---
+            # Evaluate as a minimum bound, not an exact match
             if actual_count == 0:
                 status = "❌ **GHOST PATTERN**"
                 ghost_traces += 1
@@ -746,7 +802,7 @@ class LogTraceVerifier:
         if extracted_registry:
             md_lines.append("\n---\n")
             md_lines.append("## Nested Structures Reference")
-            md_lines.append("The following complex blocks were abstracted during the audit to prevent combinatorial explosion:\\n")
+            md_lines.append("The following complex blocks were abstracted during the audit to prevent combinatorial explosion:\n")
             
             for block_id, original_node in extracted_registry.items():
                 # Note: block_id is already formatted like "nested PAR_1"
@@ -784,7 +840,6 @@ class LogTraceVerifier:
                 except Exception as e:
                     md_lines.append(f"*⚠️ Failed to generate internal diagram: {e}*\n")
         
-        # ------------------- [WITH THIS] -------------------
         # --- 2. Build the Overview Table and insert it right after the main Title ---
         overview_table = [
             "## Dataset & Audit Overview",
@@ -834,12 +889,26 @@ class LogTraceVerifier:
         md_lines = md_lines[:1] + overview_table + md_lines[1:]
 
         # Finally, write the complete report to the Markdown file
-        with open(output_md_path, "w", encoding="utf-8") as f: 
+        with open(output_md_path, "w", encoding="utf-8") as f:
             f.write("\n".join(md_lines))
-        # ---------------------------------------------------
 
-    # ... (Keep verify_batch, _print_original_pm4py_tree exactly as they were) ...
     def verify_batch(self, target_path: str, report_dir: str, noise_threshold: float = 0.0):
+        """
+        Audit every supported log at a path, one report per file.
+
+        Accepts a single log file or a directory (scanned non-recursively for
+        recognized extensions), and calls :meth:`verify_and_report` for each,
+        writing ``audit_<stem>__noise<level>.md`` into ``report_dir``. A failure on
+        one file is caught and logged so the batch continues.
+
+        Args:
+            target_path: A log file or directory of logs to audit.
+            report_dir: Directory where the per-file reports are written.
+            noise_threshold: Inductive-miner noise threshold used when mining.
+
+        Returns:
+            None. Reports are written to ``report_dir``.
+        """
         path_obj = Path(target_path)
         report_out_dir = Path(report_dir)
         report_out_dir.mkdir(parents=True, exist_ok=True)
@@ -854,10 +923,6 @@ class LogTraceVerifier:
 
         for i, file_path in enumerate(files_to_process, 1):
             try:
-                # Noise-suffixed unconditionally: a fixed "audit_{stem}.md" name gets
-                # silently overwritten by the next noise level in any sweep, taking the
-                # Assimilated Master Tree image (named off the same stem) down with it --
-                # every report ends up linking to whichever noise level ran last.
                 out_path = report_out_dir / f"audit_{file_path.stem}__noise{noise_threshold}.md"
                 self.verify_and_report(str(file_path), str(out_path), noise_threshold=noise_threshold)
             except Exception as e:
@@ -882,10 +947,6 @@ class LogTraceVerifier:
                 else:
                     log = pm_lib.format_dataframe(df, case_id=case_col, activity_key=act_col)
             else:
-                # Use the same pristine, defensively-built dataframe as DataAssimilation:
-                # it synthesizes a timestamp column when the XES has none, and guards
-                # against pm4py.format_dataframe()'s tendency to misparse short
-                # alphanumeric activity labels (e.g. "t09") as dates.
                 df = DataAssimilation._prepare_log_dataframe(file_path)
                 df['concept:name'] = df['concept:name'].astype('category')
                 log = pm_lib.format_dataframe(
@@ -905,7 +966,7 @@ class LogTraceVerifier:
             print(tree_str)
             print("-" * 50 + "\n")
             
-            # --- NEW: Save the image using PM4Py ---
+            # Save the image using PM4Py
             try:
                 pm_lib.save_vis_process_tree(tree, str(img_out_path))
                 img_saved = True
@@ -920,6 +981,21 @@ class LogTraceVerifier:
             return f"Failed to mine original tree: {e}", False
 
 def prepare_for_verifier(input_file, output_file):
+    """
+    Normalize a raw CSV log into a verifier-safe, XES-style CSV.
+
+    Renames the ``Case ID`` / ``Activity`` / ``Timestamp`` columns to their
+    canonical ``concept:name`` forms, coerces case ids to strings, parses
+    timestamps, sorts chronologically per case, and breaks identical-timestamp
+    ties by adding cumulative milliseconds so event order is stable.
+
+    Args:
+        input_file: Path to the raw CSV log.
+        output_file: Path of the cleaned CSV to write.
+
+    Returns:
+        None. The cleaned CSV is written to ``output_file``.
+    """
     print("Loading data...")
     df = pd.read_csv(input_file)
     
@@ -953,11 +1029,6 @@ def prepare_for_verifier(input_file, output_file):
 
 if __name__ == "__main__":
 
-    # Bulk-audit all three BPIC2021 subfolders (Training Logs, Test Logs,
-    # Ground Truth Logs) across a sweep of noise thresholds. Each subfolder
-    # gets its own directory under output/BPIC2021_Verification, and each
-    # noise level within it gets its own subfolder, so reports never collide
-    # and a partial/interrupted run still leaves usable, organized output.
     verifier = LogTraceVerifier()
 
     #bpic2021_subfolders = ["Training Logs", "Test Logs", "Ground Truth Logs"]
